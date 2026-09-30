@@ -134,3 +134,17 @@ def test_reset_settings(setup):
     client, *_ = setup
     client.put("/api/settings", json={"volume": 10})
     assert client.post("/api/settings/reset").json()["volume"] == 80
+
+
+def test_pause_seek_use_position_api(setup):
+    client, *_ = setup
+    assert client.post("/api/pause", json={"paused": True}).status_code == 409
+    client.post("/api/play", json={"active": True})
+    status = client.post("/api/pause", json={"paused": True}).json()
+    assert status["paused"] is True
+    status = client.post("/api/seek", json={"offset_sec": -10}).json()
+    assert status["position_sec"] == 20.0
+    body = client.post("/api/use-position", json={"target": "start"}).json()
+    assert body == {"position_sec": 20.0, "position": "00:20"}
+    videos = {video["name"]: video for video in client.get("/api/videos").json()}
+    assert videos["other.mp4"]["effective_start"] == "00:20"

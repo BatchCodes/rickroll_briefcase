@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from enum import StrEnum
 
 from briefcase.display import Display
@@ -33,6 +33,10 @@ from briefcase.settings import (
 LOGGER = logging.getLogger(__name__)
 
 RETRY_DELAY_SEC = 5.0
+
+
+class ControllerError(RuntimeError):
+    """A request that the controller cannot do in the current state."""
 
 
 class State(StrEnum):
@@ -56,7 +60,10 @@ class Status:
     current_video: str | None
     start_sec: float | None
     test_play: bool
+    paused: bool
     error: str | None
+    position_sec: float | None = None
+    duration_sec: float | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -86,6 +93,7 @@ class BriefcaseController:
         self._start_sec: float | None = None
         self._prepared = False
         self._test_play = False
+        self._paused = False
         self._error: str | None = None
         self._retry: asyncio.TimerHandle | None = None
 
@@ -104,7 +112,25 @@ class BriefcaseController:
             current_video=self._current,
             start_sec=self._start_sec,
             test_play=self._test_play,
+            paused=self._paused,
             error=self._error,
+        )
+
+    async def status_with_position(self) -> Status:
+        """The status, with the playback position and the video length."""
+        status = self.status()
+        if self._current is None or not self._player.connected:
+            return status
+        position = None
+        try:
+            position = await self._player.position()
+        except MpvError:
+            LOGGER.debug("Cannot read the playback position")
+        info = self._library.probe(self._current) if self._current else None
+        return replace(
+            status,
+            position_sec=position,
+            duration_sec=info.duration_sec if info else None,
         )
 
     async def start(self) -> None:
@@ -161,6 +187,56 @@ class BriefcaseController:
             await self._apply()
 
         await self._run(handler)
+
+    async def set_paused(self, paused: bool) -> None:
+        """Pause or resume a video that plays, for example to find a frame."""
+
+        async def handler() -> None:
+            if self._state is not State.PLAYING:
+                raise ControllerError("No video plays now.")
+            if paused:
+                await self._player.pause()
+            else:
+                await self._player.play()
+            self._paused = paused
+
+        await self._run_strict(handler)
+
+    async def seek(self, offset_sec: float) -> None:
+        async def handler() -> None:
+            if self._state is not State.PLAYING:
+                raise ControllerError("No video plays now.")
+            await self._player.seek_relative(offset_sec)
+
+        await self._run_strict(handler)
+
+    async def use_position(self, as_cue_point: bool) -> float:
+        """Store the current position as the start position or as a cue point."""
+        result: dict[str, float] = {}
+
+        async def handler() -> None:
+            if self._current is None or self._state is not State.PLAYING:
+                raise ControllerError("Play the video first, then pause it.")
+            position = await self._player.position()
+            if position is None:
+                raise ControllerError("The player has no position now.")
+            position = round(position, 1)
+            video = self._settings.get().video(self._current)
+            if as_cue_point:
+                video.cue_points_sec = sorted({*video.cue_points_sec, position})
+            else:
+                video.start_mode = StartMode.FIXED
+                video.start_sec = position
+            self._settings.update_video(self._current, video)
+            result["position"] = position
+
+        await self._run_strict(handler)
+        return result["position"]
+
+    async def _run_strict(self, handler) -> None:
+        """Run a web request. Raise its error to the caller."""
+        async with self._lock:
+            await handler()
 
     async def _on_player_connection(self, connected: bool) -> None:
         async def handler() -> None:
@@ -263,12 +339,14 @@ class BriefcaseController:
         LOGGER.info("Ready: %s at %.1f s", name, start_sec)
 
     async def _play(self) -> None:
+        self._paused = False
         await self._player.set_mute(False)
         await asyncio.gather(self._player.play(), self._display.on())
         self._state = State.PLAYING
         LOGGER.info("Playing %s", self._current)
 
     async def _stop_playback(self) -> None:
+        self._paused = False
         await self._player.pause()
         await self._player.set_mute(True)
         await self._save_resume_position()

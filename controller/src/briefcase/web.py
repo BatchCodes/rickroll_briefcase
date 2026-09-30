@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -14,7 +14,7 @@ from pydantic import BaseModel, ValidationError
 
 from briefcase import __version__
 from briefcase.config import AppConfig
-from briefcase.controller import BriefcaseController
+from briefcase.controller import BriefcaseController, ControllerError
 from briefcase.inputs import Inputs, SimulatedInputs
 from briefcase.library import Library, LibraryError
 from briefcase.settings import (
@@ -41,6 +41,18 @@ class RenameRequest(BaseModel):
 
 class PlayRequest(BaseModel):
     active: bool
+
+
+class PauseRequest(BaseModel):
+    paused: bool
+
+
+class SeekRequest(BaseModel):
+    offset_sec: float
+
+
+class UsePositionRequest(BaseModel):
+    target: Literal["start", "cue"]
 
 
 class SimulateRequest(BaseModel):
@@ -104,7 +116,7 @@ def create_app(
 
     @app.get("/api/status")
     async def status() -> dict[str, Any]:
-        return controller.status().to_dict()
+        return (await controller.status_with_position()).to_dict()
 
     @app.get("/api/settings")
     async def get_settings() -> dict[str, Any]:
@@ -203,6 +215,30 @@ def create_app(
     async def play(body: PlayRequest) -> dict[str, Any]:
         await controller.set_test_play(body.active)
         return controller.status().to_dict()
+
+    @app.post("/api/pause")
+    async def pause(body: PauseRequest) -> dict[str, Any]:
+        try:
+            await controller.set_paused(body.paused)
+        except ControllerError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return (await controller.status_with_position()).to_dict()
+
+    @app.post("/api/seek")
+    async def seek(body: SeekRequest) -> dict[str, Any]:
+        try:
+            await controller.seek(body.offset_sec)
+        except ControllerError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return (await controller.status_with_position()).to_dict()
+
+    @app.post("/api/use-position")
+    async def use_position(body: UsePositionRequest) -> dict[str, Any]:
+        try:
+            position = await controller.use_position(body.target == "cue")
+        except ControllerError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return {"position_sec": position, "position": format_time(position)}
 
     @app.post("/api/simulate")
     async def simulate(body: SimulateRequest) -> dict[str, Any]:

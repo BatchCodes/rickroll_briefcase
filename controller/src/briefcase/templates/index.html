@@ -26,10 +26,29 @@
           <div><dt>Arm switch</dt><dd id="arm-state">–</dd></div>
           <div><dt>Player</dt><dd id="player-state">–</dd></div>
         </dl>
+        <div class="position">
+          <span id="position-text" class="position-text">--:-- / --:--</span>
+          <progress id="position-bar" max="1" value="0"></progress>
+        </div>
         <p id="status-error" class="error" hidden></p>
         <div class="buttons">
           <button id="play-button" type="button">Play now</button>
+          <button id="pause-button" type="button" class="secondary">Pause</button>
           <button id="stop-button" type="button" class="secondary">Stop</button>
+        </div>
+        <div id="position-tools" class="position-tools">
+          <p class="muted">Find a start point: play, pause, then move with the buttons.</p>
+          <div class="buttons">
+            <button type="button" class="secondary seek" data-offset="-5">−5 s</button>
+            <button type="button" class="secondary seek" data-offset="-1">−1 s</button>
+            <button type="button" class="secondary seek" data-offset="1">+1 s</button>
+            <button type="button" class="secondary seek" data-offset="5">+5 s</button>
+          </div>
+          <div class="buttons">
+            <button id="use-start-button" type="button">Use as start position</button>
+            <button id="use-cue-button" type="button" class="secondary">Add as cue point</button>
+          </div>
+          <p id="position-message" class="muted" hidden></p>
         </div>
         <div id="simulate" class="simulate" hidden>
           <p class="muted">Simulated inputs (laptop mode)</p>

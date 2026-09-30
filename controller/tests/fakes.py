@@ -58,6 +58,10 @@ class FakePlayer:
     async def position(self) -> float | None:
         return self.current_position
 
+    async def seek_relative(self, offset_sec: float) -> None:
+        self.calls.append(("seek", offset_sec))
+        self.current_position = max(0.0, self.current_position + offset_sec)
+
     async def stop(self) -> None:
         self.calls.append(("stop",))
         self.loaded = None

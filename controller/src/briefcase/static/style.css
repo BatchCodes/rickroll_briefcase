@@ -238,3 +238,27 @@ progress {
 code {
   font-size: 0.85em;
 }
+
+.position {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.position-text {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.position progress {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.position-tools {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}

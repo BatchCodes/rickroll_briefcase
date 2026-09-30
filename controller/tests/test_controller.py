@@ -307,3 +307,45 @@ async def test_start_after_end_of_short_video_uses_zero(parts, monkeypatch):
     _, player, _, _, controller = parts
     await controller.start()
     assert player.loaded[1] == 0.0
+
+
+async def test_pause_seek_and_use_position_as_start(parts):
+    _, player, _, store, controller = parts
+    await controller.start()
+    await controller.set_test_play(True)
+
+    await controller.set_paused(True)
+    assert player.paused
+    assert controller.status().paused
+    await controller.seek(5)
+    assert player.current_position == 35.0
+
+    assert await controller.use_position(as_cue_point=False) == 35.0
+    video = store.get().video("a.mp4")
+    assert video.start_sec == 35.0
+    assert video.start_mode is StartMode.FIXED
+
+    assert await controller.use_position(as_cue_point=True) == 35.0
+    assert store.get().video("a.mp4").cue_points_sec == [35.0]
+
+    await controller.set_test_play(False)
+    assert player.loaded[1] == 35.0
+    assert not controller.status().paused
+
+
+async def test_pause_needs_a_playing_video(parts):
+    from briefcase.controller import ControllerError
+
+    _, _, _, _, controller = parts
+    await controller.start()
+    with pytest.raises(ControllerError):
+        await controller.set_paused(True)
+    with pytest.raises(ControllerError):
+        await controller.use_position(as_cue_point=False)
+
+
+async def test_status_with_position(parts):
+    _, player, _, _, controller = parts
+    await controller.start()
+    status = await controller.status_with_position()
+    assert status.position_sec == 30.0

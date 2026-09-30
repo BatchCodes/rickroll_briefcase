@@ -67,6 +67,22 @@ function renderStatus(status) {
   $("#lid-state").textContent = status.lid_open ? "Open" : "Closed";
   $("#arm-state").textContent = status.armed ? "Armed" : "Disarmed";
   $("#player-state").textContent = status.player_connected ? "Connected" : "Offline";
+
+  const playing = status.state === "playing";
+  const position = status.position_sec;
+  const duration = status.duration_sec;
+  $("#position-text").textContent =
+    position === null || position === undefined
+      ? "--:-- / --:--"
+      : `${formatTime(position)} / ${duration ? formatTime(duration) : "--:--"}`;
+  const bar = $("#position-bar");
+  bar.max = duration || 1;
+  bar.value = position && duration ? Math.min(position, duration) : 0;
+  $("#pause-button").textContent = status.paused ? "Resume" : "Pause";
+  $("#pause-button").disabled = !playing;
+  for (const button of document.querySelectorAll("#position-tools button")) {
+    button.disabled = !playing;
+  }
   showError(status.error);
 
   $("#simulate").hidden = !status.simulated_inputs;
@@ -221,6 +237,30 @@ function bindEvents() {
   $("#stop-button").addEventListener("click", () =>
     run(async () => renderStatus(await api("POST", "/api/play", { active: false }))),
   );
+  $("#pause-button").addEventListener("click", () =>
+    run(async () =>
+      renderStatus(await api("POST", "/api/pause", { paused: !lastStatus.paused })),
+    ),
+  );
+  for (const button of document.querySelectorAll(".seek")) {
+    button.addEventListener("click", () =>
+      run(async () =>
+        renderStatus(
+          await api("POST", "/api/seek", { offset_sec: Number(button.dataset.offset) }),
+        ),
+      ),
+    );
+  }
+  const usePosition = async (target) => {
+    const result = await run(() => api("POST", "/api/use-position", { target }));
+    if (!result) return;
+    const label = target === "cue" ? "Added the cue point" : "The start position is now";
+    $("#position-message").hidden = false;
+    $("#position-message").textContent = `${label} ${result.position}.`;
+    await refreshAll();
+  };
+  $("#use-start-button").addEventListener("click", () => usePosition("start"));
+  $("#use-cue-button").addEventListener("click", () => usePosition("cue"));
   $("#sim-lid").addEventListener("click", () =>
     run(async () =>
       renderStatus(await api("POST", "/api/simulate", { lid_open: !lastStatus.lid_open })),

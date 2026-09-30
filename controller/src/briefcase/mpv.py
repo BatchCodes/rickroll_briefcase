@@ -49,6 +49,8 @@ class Player(Protocol):
 
     async def position(self) -> float | None: ...
 
+    async def seek_relative(self, offset_sec: float) -> None: ...
+
     async def stop(self) -> None: ...
 
 
@@ -227,6 +229,9 @@ class MpvPlayer:
         except MpvError:
             return None
         return float(value) if value is not None else None
+
+    async def seek_relative(self, offset_sec: float) -> None:
+        await self._client.command("seek", offset_sec, "relative+exact")
 
     async def stop(self) -> None:
         await self._client.command("stop")
