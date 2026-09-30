@@ -32,6 +32,8 @@ from briefcase.settings import (
 
 LOGGER = logging.getLogger(__name__)
 
+RETRY_DELAY_SEC = 5.0
+
 
 class State(StrEnum):
     STARTING = "starting"
@@ -41,6 +43,7 @@ class State(StrEnum):
     READY = "ready"
     PLAYING = "playing"
     FINISHED = "finished"
+    ERROR = "error"
 
 
 @dataclass(frozen=True)
@@ -84,6 +87,7 @@ class BriefcaseController:
         self._prepared = False
         self._test_play = False
         self._error: str | None = None
+        self._retry: asyncio.TimerHandle | None = None
 
     @property
     def state(self) -> State:
@@ -187,6 +191,21 @@ class BriefcaseController:
             except Exception as error:
                 LOGGER.exception("A controller event failed")
                 self._error = str(error)
+                if not self._prepared:
+                    self._state = State.ERROR
+                    self._schedule_retry()
+
+    def _schedule_retry(self) -> None:
+        """Try again later, so the briefcase recovers without user action."""
+        if self._loop is None:
+            return
+        if self._retry is not None:
+            self._retry.cancel()
+        LOGGER.info("Trying again in %.0f s", RETRY_DELAY_SEC)
+        self._retry = self._loop.call_later(
+            RETRY_DELAY_SEC,
+            lambda: asyncio.ensure_future(self._run(self._refresh)),
+        )
 
     async def _refresh(self) -> None:
         self._prepared = False
@@ -305,6 +324,19 @@ class BriefcaseController:
         return names[0]
 
     def _choose_start(self, settings: Settings, name: str) -> float:
+        start_sec = self._wanted_start(settings, name)
+        info = self._library.probe(name)
+        duration = info.duration_sec if info else None
+        if duration and start_sec >= duration - 1:
+            LOGGER.info(
+                "The start position %.1f s is after the end of %s. Using 0 s.",
+                start_sec,
+                name,
+            )
+            return 0.0
+        return start_sec
+
+    def _wanted_start(self, settings: Settings, name: str) -> float:
         video = settings.video(name)
         if video.start_mode is StartMode.BEGINNING:
             return 0.0

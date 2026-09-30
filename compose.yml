@@ -1,0 +1,57 @@
+name: rickroll_briefcase
+
+services:
+  player:
+    image: rickroll_briefcase-player:local
+    build:
+      context: ./player
+    restart: unless-stopped
+    user: "${BRIEFCASE_UID:-1000}:${BRIEFCASE_GID:-1000}"
+    group_add:
+      - "${VIDEO_GID:-44}"
+      - "${RENDER_GID:-105}"
+      - "${AUDIO_GID:-29}"
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/snd:/dev/snd
+    environment:
+      BRIEFCASE_PLAYER_OUTPUT: "${BRIEFCASE_PLAYER_OUTPUT:-drm}"
+      BRIEFCASE_PLAYER_EXTRA_ARGS: "${BRIEFCASE_PLAYER_EXTRA_ARGS:-}"
+    volumes:
+      - "${BRIEFCASE_DATA_DIR:-./data}/videos:/data/videos:ro"
+      - player_socket:/run/briefcase
+
+  controller:
+    image: rickroll_briefcase-controller:local
+    build:
+      context: ./controller
+      target: runtime
+    restart: unless-stopped
+    user: "${BRIEFCASE_UID:-1000}:${BRIEFCASE_GID:-1000}"
+    depends_on:
+      - player
+    group_add:
+      - "${GPIO_GID:-993}"
+    devices:
+      - /dev/gpiochip0:/dev/gpiochip0
+    environment:
+      BRIEFCASE_INPUT_BACKEND: "${BRIEFCASE_INPUT_BACKEND:-gpio}"
+      BRIEFCASE_LID_PIN: "${BRIEFCASE_LID_PIN:-17}"
+      BRIEFCASE_ARM_PIN: "${BRIEFCASE_ARM_PIN:-27}"
+      BRIEFCASE_LID_CLOSED_WHEN_LOW: "${BRIEFCASE_LID_CLOSED_WHEN_LOW:-true}"
+      BRIEFCASE_ARMED_WHEN_LOW: "${BRIEFCASE_ARMED_WHEN_LOW:-true}"
+      BRIEFCASE_DISPLAY_BACKEND: "${BRIEFCASE_DISPLAY_BACKEND:-none}"
+      BRIEFCASE_DISPLAY_ON_COMMAND: "${BRIEFCASE_DISPLAY_ON_COMMAND:-}"
+      BRIEFCASE_DISPLAY_OFF_COMMAND: "${BRIEFCASE_DISPLAY_OFF_COMMAND:-}"
+      BRIEFCASE_LOG_LEVEL: "${BRIEFCASE_LOG_LEVEL:-INFO}"
+      GPIOZERO_PIN_FACTORY: lgpio
+      LG_WD: /tmp
+    ports:
+      - "${BRIEFCASE_HTTP_PORT:-8080}:8080"
+    volumes:
+      - "${BRIEFCASE_DATA_DIR:-./data}/videos:/data/videos"
+      - "${BRIEFCASE_DATA_DIR:-./data}/config:/data/config"
+      - player_socket:/run/briefcase
+
+volumes:
+  player_socket:

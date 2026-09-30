@@ -10,6 +10,7 @@ const STATE_LABELS = {
   ready: "Ready",
   playing: "Playing",
   finished: "Finished",
+  error: "Error, retrying",
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -56,7 +57,9 @@ function renderStatus(status) {
   badge.className = "badge";
   if (status.state === "playing") badge.classList.add("playing");
   if (status.state === "ready") badge.classList.add("ready");
-  if (["no_video", "player_offline"].includes(status.state)) badge.classList.add("warn");
+  if (["no_video", "player_offline", "error"].includes(status.state)) {
+    badge.classList.add("warn");
+  }
 
   $("#now-video").textContent = status.current_video
     ? `${status.current_video} from ${formatTime(status.start_sec || 0)}`

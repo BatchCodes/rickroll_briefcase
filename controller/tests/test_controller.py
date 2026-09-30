@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 import pytest
@@ -268,3 +269,41 @@ async def test_player_offline_then_reconnect_prepares_and_plays(parts):
 
     await player.set_connected(True)
     assert controller.state is State.PLAYING
+
+
+async def test_failed_preload_retries_automatically(parts, monkeypatch):
+    import briefcase.controller as controller_module
+
+    monkeypatch.setattr(controller_module, "RETRY_DELAY_SEC", 0.01)
+    _, player, _, _, controller = parts
+    original = player.preload
+    failures = {"left": 1}
+
+    async def flaky_preload(path, start_sec, loop):
+        if failures["left"]:
+            failures["left"] -= 1
+            raise RuntimeError("mpv did not load the file in time")
+        await original(path, start_sec, loop)
+
+    player.preload = flaky_preload
+    await controller.start()
+    assert controller.state is State.ERROR
+    assert "did not load" in controller.status().error
+
+    for _ in range(50):
+        await asyncio.sleep(0.01)
+        if controller.state is State.READY:
+            break
+    assert controller.state is State.READY
+    assert controller.status().error is None
+
+
+async def test_start_after_end_of_short_video_uses_zero(parts, monkeypatch):
+    from briefcase.library import Library, VideoInfo
+
+    monkeypatch.setattr(
+        Library, "probe", lambda self, name: VideoInfo(duration_sec=10.0)
+    )
+    _, player, _, _, controller = parts
+    await controller.start()
+    assert player.loaded[1] == 0.0

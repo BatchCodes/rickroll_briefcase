@@ -15,19 +15,25 @@ You need only Docker with the Compose plugin. You do not need a Raspberry Pi, Py
    cd rickroll_briefcase
    ```
 
-2. Make a test video.
+2. Write your user and group IDs to `.env`, and make the data directories.
+
+   ```bash
+   ./scripts/write_env.sh
+   ```
+
+3. Make a test video.
 
    ```bash
    ./tools/make_test_video.sh
    ```
 
-3. Start the briefcase on your laptop.
+4. Start the briefcase on your laptop.
 
    ```bash
    docker compose -f compose.yml -f compose.dev.yml up --build
    ```
 
-4. Open <http://localhost:8080> in a browser.
+5. Open <http://localhost:8080> in a browser.
 
 The laptop version uses a simulated lid and a simulated arm switch. The web app shows buttons for them. The player opens a window on your desktop. Refer to [docs/software/development.md](docs/software/development.md) for more information.
 

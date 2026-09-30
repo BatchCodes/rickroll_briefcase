@@ -16,12 +16,14 @@ COPY src ./src
 FROM base AS runtime
 
 RUN pip install ".[gpio]" \
-  && useradd --system --uid 1000 --create-home briefcase
+  && useradd --system --uid 1000 --create-home briefcase \
+  && install -d -m 1777 /run/briefcase
 
 USER briefcase
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
   CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"]
+WORKDIR /tmp
 CMD ["briefcase-controller"]
 
 FROM base AS test

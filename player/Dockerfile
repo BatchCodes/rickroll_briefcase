@@ -9,7 +9,7 @@ RUN apt-get update \
     tini \
   && rm -rf /var/lib/apt/lists/* \
   && useradd --system --uid 1000 --create-home briefcase \
-  && install -d -o briefcase -g briefcase /run/briefcase
+  && install -d -m 1777 /run/briefcase
 
 COPY mpv.conf /etc/mpv/mpv.conf
 COPY entrypoint.sh /usr/local/bin/player-entrypoint

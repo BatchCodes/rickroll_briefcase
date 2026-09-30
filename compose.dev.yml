@@ -1,0 +1,23 @@
+services:
+  player:
+    group_add: !override
+      - "${VIDEO_GID:-44}"
+      - "${RENDER_GID:-105}"
+    devices: !override
+      - /dev/dri:/dev/dri
+    environment:
+      BRIEFCASE_PLAYER_OUTPUT: "${BRIEFCASE_PLAYER_OUTPUT:-window}"
+      BRIEFCASE_PLAYER_EXTRA_ARGS: "${BRIEFCASE_PLAYER_EXTRA_ARGS:---no-fullscreen --geometry=960x540}"
+      DISPLAY: "${DISPLAY:-}"
+      WAYLAND_DISPLAY: "${WAYLAND_DISPLAY:-}"
+      XDG_RUNTIME_DIR: /run/user/host
+      PULSE_SERVER: unix:/run/user/host/pulse/native
+    volumes:
+      - "${XDG_RUNTIME_DIR:-/tmp}:/run/user/host"
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+
+  controller:
+    group_add: !reset []
+    devices: !reset []
+    environment:
+      BRIEFCASE_INPUT_BACKEND: simulated

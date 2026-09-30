@@ -32,6 +32,7 @@ You need Docker with the Compose plugin.
 ```bash
 git clone https://github.com/<owner>/rickroll_briefcase.git
 cd rickroll_briefcase
+./scripts/write_env.sh
 ./tools/make_test_video.sh
 docker compose -f compose.yml -f compose.dev.yml up --build
 ```
