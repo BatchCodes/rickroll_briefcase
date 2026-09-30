@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -9,9 +10,9 @@ import shutil
 import subprocess
 import tempfile
 import unicodedata
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import BinaryIO
 
 LOGGER = logging.getLogger(__name__)
 
@@ -142,28 +143,38 @@ class Library:
             counter += 1
         return candidate
 
-    def save(self, filename: str, source: BinaryIO, max_bytes: int) -> str:
+    async def save_stream(
+        self, filename: str, chunks: AsyncIterator[bytes], max_bytes: int
+    ) -> str:
+        """Write an upload to a hidden temporary file, then move it into place.
+
+        A partial upload never shows in the library.
+        """
         name = sanitize_filename(filename)
         self._dir.mkdir(parents=True, exist_ok=True)
-        with tempfile.NamedTemporaryFile(
+        handle = tempfile.NamedTemporaryFile(  # noqa: SIM115
             dir=self._dir, prefix=".upload-", delete=False
-        ) as handle:
-            temp_path = Path(handle.name)
-            try:
-                written = 0
-                while chunk := source.read(1024 * 1024):
-                    written += len(chunk)
-                    if written > max_bytes:
-                        raise LibraryError(
-                            f"The file is larger than {max_bytes // 1024**2} MB."
-                        )
-                    handle.write(chunk)
-            except BaseException:
-                temp_path.unlink(missing_ok=True)
-                raise
-        final_name = self._unique_name(name)
-        temp_path.replace(self._dir / final_name)
-        return final_name
+        )
+        temp_path = Path(handle.name)
+        try:
+            written = 0
+            async for chunk in chunks:
+                written += len(chunk)
+                if written > max_bytes:
+                    raise LibraryError(
+                        f"The file is larger than {max_bytes // 1024**2} MB."
+                    )
+                await asyncio.to_thread(handle.write, chunk)
+            await asyncio.to_thread(handle.close)
+            if written == 0:
+                raise LibraryError("The upload is empty.")
+            final_name = self._unique_name(name)
+            temp_path.replace(self._dir / final_name)
+            return final_name
+        except BaseException:
+            handle.close()
+            temp_path.unlink(missing_ok=True)
+            raise
 
     def rename(self, old_name: str, new_name: str) -> str:
         source = self.path(old_name)

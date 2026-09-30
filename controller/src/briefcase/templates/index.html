@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Rickroll Briefcase</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', path='icon.svg') }}" type="image/svg+xml" />
+  </head>
+  <body>
+    <header>
+      <h1>Rickroll Briefcase</h1>
+      <span class="version">v{{ version }}</span>
+    </header>
+
+    <main>
+      <section class="card" aria-labelledby="status-heading">
+        <h2 id="status-heading">Status</h2>
+        <div class="status-row">
+          <span id="state-badge" class="badge">starting</span>
+          <span id="now-video" class="muted"></span>
+        </div>
+        <dl class="facts">
+          <div><dt>Lid</dt><dd id="lid-state">–</dd></div>
+          <div><dt>Arm switch</dt><dd id="arm-state">–</dd></div>
+          <div><dt>Player</dt><dd id="player-state">–</dd></div>
+        </dl>
+        <p id="status-error" class="error" hidden></p>
+        <div class="buttons">
+          <button id="play-button" type="button">Play now</button>
+          <button id="stop-button" type="button" class="secondary">Stop</button>
+        </div>
+        <div id="simulate" class="simulate" hidden>
+          <p class="muted">Simulated inputs (laptop mode)</p>
+          <div class="buttons">
+            <button id="sim-lid" type="button" class="secondary">Open lid</button>
+            <button id="sim-arm" type="button" class="secondary">Disarm</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="settings-heading">
+        <h2 id="settings-heading">Playback</h2>
+        <form id="settings-form">
+          <label>
+            Video to play
+            <select id="armed-video" name="armed_video"></select>
+          </label>
+          <label>
+            Selection mode
+            <select name="selection_mode">
+              <option value="single">Single: always the video above</option>
+              <option value="cycle">Cycle: the next video each time</option>
+              <option value="shuffle">Shuffle: a random video each time</option>
+            </select>
+          </label>
+          <label>
+            Default start position
+            <input name="default_start" inputmode="decimal" placeholder="00:30" />
+          </label>
+          <label>
+            Volume <output id="volume-value">80</output>
+            <input name="volume" type="range" min="0" max="100" step="1" />
+          </label>
+          <div class="buttons">
+            <button type="submit">Save</button>
+            <button id="reset-button" type="button" class="secondary">Reset to defaults</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="library-heading">
+        <h2 id="library-heading">Videos</h2>
+        <label class="upload">
+          <span>Upload a video</span>
+          <input id="upload-input" type="file" accept="video/*,.mkv,.mp4,.mov,.webm,.m4v,.avi" />
+        </label>
+        <progress id="upload-progress" max="100" value="0" hidden></progress>
+        <p id="upload-message" class="muted" hidden></p>
+        <ul id="video-list" class="video-list"></ul>
+        <p id="no-videos" class="muted" hidden>
+          No videos yet. Upload a video that you own. Convert it first with
+          <code>tools/transcode.sh</code> for the best result.
+        </p>
+      </section>
+    </main>
+
+    <template id="video-template">
+      <li class="video">
+        <details>
+          <summary>
+            <span class="video-name"></span>
+            <span class="video-meta muted"></span>
+          </summary>
+          <ul class="warnings"></ul>
+          <form class="video-form">
+            <label>
+              Start mode
+              <select name="start_mode">
+                <option value="fixed">Fixed: the start position below</option>
+                <option value="beginning">Beginning: 00:00</option>
+                <option value="random">Random: one of the cue points</option>
+                <option value="resume">Resume: where it stopped last time</option>
+              </select>
+            </label>
+            <label>
+              Start position
+              <input name="start_sec" inputmode="decimal" placeholder="default" />
+            </label>
+            <label>
+              Cue points
+              <input name="cue_points_sec" placeholder="00:30, 01:12, 02:45" />
+            </label>
+            <label>
+              At the end
+              <select name="end_action">
+                <option value="loop">Loop</option>
+                <option value="stop">Stop (black screen)</option>
+              </select>
+            </label>
+            <div class="buttons">
+              <button type="submit">Save</button>
+              <button type="button" class="secondary rename">Rename</button>
+              <button type="button" class="danger delete">Delete</button>
+            </div>
+          </form>
+        </details>
+      </li>
+    </template>
+
+    <script src="{{ url_for('static', path='app.js') }}"></script>
+  </body>
+</html>
