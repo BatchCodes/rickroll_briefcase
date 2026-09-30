@@ -154,7 +154,7 @@ docs/software/           # architecture, configuration, API
 
 ### Implementation Steps
 
-2.1. [ ] (bd: rickroll_briefcase-679.5) Make the `controller/` Python package skeleton: `pyproject.toml`, `ruff`, `pytest`, the configuration model (videos directory, config file, lid and arm GPIO pins, and the settings with their defaults from the Decisions table), and the `Dockerfile`.
+2.1. [x] (bd: rickroll_briefcase-679.5) Make the `controller/` Python package skeleton: `pyproject.toml`, `ruff`, `pytest`, the configuration model (videos directory, config file, lid and arm GPIO pins, and the settings with their defaults from the Decisions table), and the `Dockerfile`.
 2.2. [ ] (bd: rickroll_briefcase-679.6) Spike on a real Pi 4: `mpv --vo=drm` in a container with HDMI audio. Measure the time from unpause to the first frame. Find a display-off method that the Kenowa monitor accepts. Measure the cold-boot time from power on to ready with Docker. Record the results in `docs/software/player.md`. If a result invalidates the architecture, stop and add an open question.
 2.3. [ ] (bd: rickroll_briefcase-679.7) Make the `player/` image: `mpv` with JSON IPC, idle mode, a black background, and an entrypoint that selects full-screen `--vo=drm` on the Pi and a window on a laptop. The Pi path needs no user action.
 2.4. [ ] (bd: rickroll_briefcase-679.8) Implement the input abstraction for the lid reed switch and the arm switch: `gpiozero` inputs with debounce, and simulated inputs for development. Add unit tests.
