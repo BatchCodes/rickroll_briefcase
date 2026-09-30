@@ -57,7 +57,7 @@ The script asks for a Wi-Fi password. It installs Docker, sets up the `RICKROLL-
 Then do these steps:
 
 1. Connect your phone to the `RICKROLL-BRIEFCASE` Wi-Fi network.
-2. Open <http://10.42.0.1> in the phone browser.
+2. Open <http://briefcase.lan> in the phone browser. If the name does not work, open <http://10.42.0.1>. Android can show "This network has no internet access". Select "Stay connected", because the briefcase needs no internet.
 3. Upload a video.
 4. Turn on the arm switch and close the lid.
 5. Give the briefcase to a friend.

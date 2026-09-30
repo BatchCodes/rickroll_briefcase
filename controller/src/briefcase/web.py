@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Literal
@@ -27,6 +28,7 @@ from briefcase.settings import (
 )
 
 PACKAGE_DIR = Path(__file__).parent
+RESERVED_FREE_BYTES = 200 * 1024**2
 
 
 class GlobalSettingsUpdate(BaseModel):
@@ -168,8 +170,23 @@ def create_app(
     async def list_videos() -> list[dict[str, Any]]:
         return [video_entry(name) for name in library.names()]
 
+    @app.get("/api/storage")
+    async def storage() -> dict[str, Any]:
+        library.directory.mkdir(parents=True, exist_ok=True)
+        usage = shutil.disk_usage(library.directory)
+        return {"free_bytes": usage.free, "total_bytes": usage.total}
+
     @app.put("/api/videos/{filename}")
     async def upload_video(filename: str, request: Request) -> dict[str, Any]:
+        length = request.headers.get("content-length")
+        if length and length.isdigit():
+            library.directory.mkdir(parents=True, exist_ok=True)
+            free = shutil.disk_usage(library.directory).free
+            if int(length) > free - RESERVED_FREE_BYTES:
+                raise HTTPException(
+                    status_code=507,
+                    detail="The SD card does not have enough space for this video.",
+                )
         try:
             name = await library.save_stream(
                 filename, request.stream(), config.max_upload_bytes

@@ -155,3 +155,18 @@ def test_network_api_without_backend(setup):
     assert client.get("/api/network").json()["mode"] == "unavailable"
     response = client.post("/api/network/mode", json={"mode": "client"})
     assert response.status_code == 409
+
+
+def test_storage_and_full_disk(setup, monkeypatch):
+    import shutil
+
+    client, *_ = setup
+    storage = client.get("/api/storage").json()
+    assert storage["free_bytes"] > 0
+
+    usage = shutil.disk_usage("/")
+    monkeypatch.setattr(
+        shutil, "disk_usage", lambda path: usage._replace(free=100 * 1024**2)
+    )
+    response = client.put("/api/videos/full.mp4", content=b"x" * 10)
+    assert response.status_code == 507

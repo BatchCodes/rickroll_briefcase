@@ -11,6 +11,9 @@ SERVICE_NAME="rickroll-briefcase"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 HOTSPOT_CONNECTION="briefcase-hotspot"
 POLKIT_RULE="/etc/polkit-1/rules.d/50-rickroll-briefcase.rules"
+DNSMASQ_SHARED_CONF="/etc/NetworkManager/dnsmasq-shared.d/rickroll-briefcase.conf"
+FRIENDLY_NAME="briefcase.lan"
+HOTSPOT_ADDRESS="10.42.0.1"
 DOCKER_INSTALL_URL="https://get.docker.com"
 CONFIG_BEGIN="# rickroll_briefcase begin"
 CONFIG_END="# rickroll_briefcase end"
@@ -336,7 +339,11 @@ configure_hotspot() {
     wifi-sec.proto rsn \
     wifi-sec.pairwise ccmp \
     wifi-sec.psk "${PASSWORD}"
-  printf 'The access point starts at the next boot. The Pi address on it is 10.42.0.1.\n'
+  apt-get install -y dnsmasq-base
+  install -d -m 0755 "$(dirname -- "${DNSMASQ_SHARED_CONF}")"
+  printf 'address=/%s/%s\n' "${FRIENDLY_NAME}" "${HOTSPOT_ADDRESS}" >"${DNSMASQ_SHARED_CONF}"
+  chmod 0644 "${DNSMASQ_SHARED_CONF}"
+  printf 'The access point starts at the next boot. Open http://%s or http://%s on it.\n' "${FRIENDLY_NAME}" "${HOTSPOT_ADDRESS}"
 }
 
 install_network_permission() {
@@ -396,7 +403,7 @@ The Rickroll Briefcase is installed.
 Next steps:
   1. Reboot the Pi: sudo reboot
   2. Connect your phone to the Wi-Fi network ${SSID}.
-  3. Open http://10.42.0.1 in the phone browser.
+  3. Open http://${FRIENDLY_NAME} (or http://${HOTSPOT_ADDRESS}) in the phone browser.
   4. Upload a video, then turn on the arm switch.
 SUMMARY
 }

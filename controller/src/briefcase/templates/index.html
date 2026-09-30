@@ -93,8 +93,14 @@
         <h2 id="library-heading">Videos</h2>
         <label class="upload">
           <span>Upload a video</span>
-          <input id="upload-input" type="file" accept="video/*,.mkv,.mp4,.mov,.webm,.m4v,.avi" />
+          <input
+            id="upload-input"
+            type="file"
+            multiple
+            accept="video/*,.mkv,.mp4,.mov,.webm,.m4v,.avi"
+          />
         </label>
+        <p id="storage" class="muted"></p>
         <progress id="upload-progress" max="100" value="0" hidden></progress>
         <p id="upload-message" class="muted" hidden></p>
         <ul id="video-list" class="video-list"></ul>

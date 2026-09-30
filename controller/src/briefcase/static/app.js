@@ -257,47 +257,71 @@ async function refreshAll() {
   ]);
   videos = videoList;
   refreshNetwork();
+  refreshStorage();
   renderVideos();
   renderSettings(settings);
   await refreshStatus();
 }
 
-function upload(file) {
+async function refreshStorage() {
+  try {
+    const storage = await api("GET", "/api/storage");
+    $("#storage").textContent =
+      `Free space: ${formatBytes(storage.free_bytes)} of ${formatBytes(storage.total_bytes)}`;
+  } catch (error) {
+    $("#storage").textContent = "";
+  }
+}
+
+function upload(file, index, count) {
   const progress = $("#upload-progress");
   const message = $("#upload-message");
+  const prefix = count > 1 ? `(${index + 1} of ${count}) ` : "";
   progress.hidden = false;
   progress.value = 0;
   message.hidden = false;
-  message.textContent = `Uploading ${file.name}…`;
+  message.textContent = `${prefix}Uploading ${file.name}…`;
 
-  const request = new XMLHttpRequest();
-  request.open("PUT", `/api/videos/${encodeURIComponent(file.name)}`);
-  request.upload.addEventListener("progress", (event) => {
-    if (event.lengthComputable) progress.value = (event.loaded / event.total) * 100;
+  return new Promise((resolve) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", `/api/videos/${encodeURIComponent(file.name)}`);
+    request.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) progress.value = (event.loaded / event.total) * 100;
+    });
+    request.addEventListener("load", () => {
+      progress.hidden = true;
+      let data = {};
+      try {
+        data = JSON.parse(request.responseText);
+      } catch (error) {
+        data = {};
+      }
+      if (request.status >= 400) {
+        resolve(`${file.name}: upload failed: ${data.detail || request.status}`);
+        return;
+      }
+      const warnings = (data.info && data.info.warnings) || [];
+      resolve(
+        warnings.length
+          ? `Uploaded ${data.name}. Warning: ${warnings.join(" ")}`
+          : `Uploaded ${data.name}.`,
+      );
+    });
+    request.addEventListener("error", () => {
+      progress.hidden = true;
+      resolve(`${file.name}: upload failed: the connection broke.`);
+    });
+    request.send(file);
   });
-  request.addEventListener("load", async () => {
-    progress.hidden = true;
-    let data = {};
-    try {
-      data = JSON.parse(request.responseText);
-    } catch (error) {
-      data = {};
-    }
-    if (request.status >= 400) {
-      message.textContent = `Upload failed: ${data.detail || request.status}`;
-      return;
-    }
-    const warnings = (data.info && data.info.warnings) || [];
-    message.textContent = warnings.length
-      ? `Uploaded ${data.name}. Warning: ${warnings.join(" ")}`
-      : `Uploaded ${data.name}.`;
-    await refreshAll();
-  });
-  request.addEventListener("error", () => {
-    progress.hidden = true;
-    message.textContent = "Upload failed: the connection broke.";
-  });
-  request.send(file);
+}
+
+async function uploadAll(files) {
+  const results = [];
+  for (const [index, file] of files.entries()) {
+    results.push(await upload(file, index, files.length));
+  }
+  $("#upload-message").textContent = results.join(" ");
+  await refreshAll();
 }
 
 function bindEvents() {
@@ -389,9 +413,9 @@ function bindEvents() {
   });
 
   $("#upload-input").addEventListener("change", (event) => {
-    const [file] = event.target.files;
-    if (file) upload(file);
+    const files = Array.from(event.target.files);
     event.target.value = "";
+    if (files.length) uploadAll(files);
   });
 }
 
