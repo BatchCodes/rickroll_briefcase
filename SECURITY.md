@@ -21,3 +21,4 @@ A maintainer replies within 14 days.
 
 - The web app has no login. Any device on the briefcase Wi-Fi network can upload, change and delete videos. The WPA2 password of the access point is the only protection. Use a strong password.
 - The web app uses HTTP, not HTTPS. The Wi-Fi encryption protects the traffic.
+- Any device on the briefcase Wi-Fi can change the Wi-Fi mode and add or forget Wi-Fi networks. `install.sh` gives the briefcase user full control of NetworkManager through a polkit rule, so that the controller container can do this.

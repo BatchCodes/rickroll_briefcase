@@ -21,15 +21,16 @@ The `player` container runs `mpv` in idle mode. `mpv` writes the picture directl
 
 The `controller` container runs one Python process with these parts:
 
-| Module          | Function                                                                    |
-| --------------- | --------------------------------------------------------------------------- |
-| `inputs.py`     | reads the reed switch and the arm switch with `gpiozero`, or simulates them |
-| `mpv.py`        | the `mpv` IPC client, with automatic reconnection                           |
-| `controller.py` | the state machine                                                           |
-| `library.py`    | the video files: list, upload, rename, delete and format check              |
-| `settings.py`   | the playback settings, their defaults and the atomic settings file          |
-| `display.py`    | optional monitor power commands                                             |
-| `web.py`        | the FastAPI JSON API and the phone web page                                 |
+| Module          | Function                                                                      |
+| --------------- | ----------------------------------------------------------------------------- |
+| `inputs.py`     | reads the reed switch and the arm switch with `gpiozero`, or simulates them   |
+| `mpv.py`        | the `mpv` IPC client, with automatic reconnection                             |
+| `controller.py` | the state machine                                                             |
+| `library.py`    | the video files: list, upload, rename, delete and format check                |
+| `settings.py`   | the playback settings, their defaults and the atomic settings file            |
+| `display.py`    | optional monitor power commands                                               |
+| `network.py`    | the Wi-Fi mode (hotspot or client) with the automatic fallback to the hotspot |
+| `web.py`        | the FastAPI JSON API and the phone web page                                   |
 
 ## Instant Start
 
@@ -51,6 +52,18 @@ A cold start of a video player takes too long for the gag. Thus the controller a
 The video plays when the briefcase is armed **and** the lid is open. At start, the controller reads the positions of both switches. Thus, if the arm switch is on and the lid is open at the end of a boot, the video plays with no user action.
 
 All events (switch changes, player events and web requests) go through one lock, so two transitions never overlap. Each event handler reads the latest switch positions, so switch bounce cannot leave a wrong state.
+
+## Wi-Fi Mode
+
+The Pi is normally a Wi-Fi access point. The web app can change it to a client of a known Wi-Fi network, for example to update the software. The controller runs `nmcli` in its container. `nmcli` talks to the host NetworkManager through the system D-Bus socket, which `compose.yml` mounts. A polkit rule from `install.sh` gives the briefcase user this permission.
+
+These rules prevent a lock-out:
+
+- The Pi starts in hotspot mode at each boot, because the hotspot connection has the highest autoconnect priority.
+- In client mode, if no known network connects within 60 s, or the connection drops for 60 s, the controller starts the hotspot again.
+- The web app changes the mode 1.5 s after the request, so that the phone receives the reply first.
+
+In client mode, the web app is at `http://<hostname>.local` on the home network.
 
 ## Recovery
 

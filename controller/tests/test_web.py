@@ -148,3 +148,10 @@ def test_pause_seek_use_position_api(setup):
     assert body == {"position_sec": 20.0, "position": "00:20"}
     videos = {video["name"]: video for video in client.get("/api/videos").json()}
     assert videos["other.mp4"]["effective_start"] == "00:20"
+
+
+def test_network_api_without_backend(setup):
+    client, *_ = setup
+    assert client.get("/api/network").json()["mode"] == "unavailable"
+    response = client.post("/api/network/mode", json={"mode": "client"})
+    assert response.status_code == 409

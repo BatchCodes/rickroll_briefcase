@@ -39,6 +39,7 @@
     "neodymium",
     "nmcli",
     "pipefail",
+    "polkit",
     "powercore",
     "pydantic",
     "pyproject",

@@ -30,3 +30,4 @@ services:
     devices: !reset []
     environment:
       BRIEFCASE_INPUT_BACKEND: simulated
+      BRIEFCASE_NETWORK_BACKEND: simulated

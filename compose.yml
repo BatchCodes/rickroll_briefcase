@@ -39,6 +39,8 @@ services:
       BRIEFCASE_DISPLAY_ON_COMMAND: "${BRIEFCASE_DISPLAY_ON_COMMAND:-}"
       BRIEFCASE_DISPLAY_OFF_COMMAND: "${BRIEFCASE_DISPLAY_OFF_COMMAND:-}"
       BRIEFCASE_LOG_LEVEL: "${BRIEFCASE_LOG_LEVEL:-INFO}"
+      BRIEFCASE_NETWORK_BACKEND: "${BRIEFCASE_NETWORK_BACKEND:-nmcli}"
+      BRIEFCASE_NETWORK_FALLBACK_SEC: "${BRIEFCASE_NETWORK_FALLBACK_SEC:-60}"
       GPIOZERO_PIN_FACTORY: lgpio
       LG_WD: /tmp
     ports:
@@ -47,6 +49,7 @@ services:
       - "${BRIEFCASE_DATA_DIR:-./data}/videos:/data/videos"
       - "${BRIEFCASE_DATA_DIR:-./data}/config:/data/config"
       - player_socket:/run/briefcase
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
 
 volumes:
   player_socket:

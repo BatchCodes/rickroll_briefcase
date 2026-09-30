@@ -10,6 +10,7 @@ CMDLINE_TXT="${BOOT_DIR}/cmdline.txt"
 SERVICE_NAME="rickroll-briefcase"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 HOTSPOT_CONNECTION="briefcase-hotspot"
+POLKIT_RULE="/etc/polkit-1/rules.d/50-rickroll-briefcase.rules"
 DOCKER_INSTALL_URL="https://get.docker.com"
 CONFIG_BEGIN="# rickroll_briefcase begin"
 CONFIG_END="# rickroll_briefcase end"
@@ -338,6 +339,22 @@ configure_hotspot() {
   printf 'The access point starts at the next boot. The Pi address on it is 10.42.0.1.\n'
 }
 
+install_network_permission() {
+  log_step "Wi-Fi control from the web app"
+  install -d -m 0755 "$(dirname -- "${POLKIT_RULE}")"
+  cat >"${POLKIT_RULE}" <<RULE
+// Let the briefcase controller container change the Wi-Fi mode.
+polkit.addRule(function (action, subject) {
+  if (action.id.indexOf("org.freedesktop.NetworkManager.") === 0 &&
+      subject.user === "${SUDO_USER}") {
+    return polkit.Result.YES;
+  }
+});
+RULE
+  chmod 0644 "${POLKIT_RULE}"
+  printf 'The user %s can now control NetworkManager.\n' "${SUDO_USER}"
+}
+
 install_service() {
   log_step "Start at boot"
   cat >"${SERVICE_FILE}" <<SERVICE
@@ -395,6 +412,7 @@ main() {
   configure_boot
   configure_console
   configure_hotspot
+  install_network_permission
   install_service
   start_containers
   print_summary

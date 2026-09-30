@@ -103,6 +103,36 @@
           <code>tools/transcode.sh</code> for the best result.
         </p>
       </section>
+      <section id="wifi-card" class="card" aria-labelledby="wifi-heading" hidden>
+        <h2 id="wifi-heading">Wi-Fi</h2>
+        <dl class="facts">
+          <div><dt>Mode</dt><dd id="wifi-mode">–</dd></div>
+          <div><dt>Network</dt><dd id="wifi-network">–</dd></div>
+          <div><dt>Address</dt><dd id="wifi-address">–</dd></div>
+        </dl>
+        <p id="wifi-message" class="muted" hidden></p>
+        <div class="buttons">
+          <button id="wifi-client-button" type="button">Connect to known Wi-Fi</button>
+          <button id="wifi-hotspot-button" type="button" class="secondary">Back to hotspot</button>
+        </div>
+        <p id="wifi-help" class="muted"></p>
+
+        <h3>Known networks</h3>
+        <ul id="known-networks" class="known-networks"></ul>
+        <form id="add-network-form">
+          <label>
+            Network name
+            <input name="ssid" autocomplete="off" required maxlength="32" />
+          </label>
+          <label>
+            Password (empty for an open network)
+            <input name="password" type="password" autocomplete="new-password" />
+          </label>
+          <div class="buttons">
+            <button type="submit" class="secondary">Add a Wi-Fi network</button>
+          </div>
+        </form>
+      </section>
     </main>
 
     <template id="video-template">

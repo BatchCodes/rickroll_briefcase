@@ -14,6 +14,7 @@ from typing import Literal
 
 InputBackend = Literal["gpio", "simulated"]
 DisplayBackend = Literal["none", "command"]
+NetworkBackendName = Literal["none", "nmcli", "simulated"]
 
 ENV_PREFIX = "BRIEFCASE_"
 
@@ -48,6 +49,10 @@ class AppConfig:
     http_host: str = "0.0.0.0"
     http_port: int = 8080
     max_upload_bytes: int = 4 * 1024**3
+    network_backend: NetworkBackendName = "none"
+    hotspot_connection: str = "briefcase-hotspot"
+    wifi_interface: str = "wlan0"
+    network_fallback_sec: float = 60.0
 
     @property
     def settings_path(self) -> Path:
@@ -67,6 +72,12 @@ class AppConfig:
                 f"{ENV_PREFIX}DISPLAY_BACKEND must be none or command, "
                 f"not {display_backend!r}"
             )
+        network_backend = _env("NETWORK_BACKEND", "none")
+        if network_backend not in ("none", "nmcli", "simulated"):
+            raise ValueError(
+                f"{ENV_PREFIX}NETWORK_BACKEND must be none, nmcli or simulated, "
+                f"not {network_backend!r}"
+            )
         return cls(
             videos_dir=Path(_env("VIDEOS_DIR", "/data/videos")),
             config_dir=Path(_env("CONFIG_DIR", "/data/config")),
@@ -83,4 +94,8 @@ class AppConfig:
             http_host=_env("HTTP_HOST", "0.0.0.0"),
             http_port=int(_env("HTTP_PORT", "8080")),
             max_upload_bytes=int(_env("MAX_UPLOAD_BYTES", str(4 * 1024**3))),
+            network_backend=network_backend,  # type: ignore[arg-type]
+            hotspot_connection=_env("HOTSPOT_CONNECTION", "briefcase-hotspot"),
+            wifi_interface=_env("WIFI_INTERFACE", "wlan0"),
+            network_fallback_sec=float(_env("NETWORK_FALLBACK_SEC", "60")),
         )

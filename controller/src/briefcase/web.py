@@ -17,6 +17,7 @@ from briefcase.config import AppConfig
 from briefcase.controller import BriefcaseController, ControllerError
 from briefcase.inputs import Inputs, SimulatedInputs
 from briefcase.library import Library, LibraryError
+from briefcase.network import Mode, NetworkController, NetworkError
 from briefcase.settings import (
     SelectionMode,
     SettingsStore,
@@ -55,6 +56,15 @@ class UsePositionRequest(BaseModel):
     target: Literal["start", "cue"]
 
 
+class ModeRequest(BaseModel):
+    mode: Literal["hotspot", "client"]
+
+
+class AddNetworkRequest(BaseModel):
+    ssid: str
+    password: str = ""
+
+
 class SimulateRequest(BaseModel):
     lid_open: bool | None = None
     armed: bool | None = None
@@ -73,8 +83,10 @@ def create_app(
     library: Library,
     store: SettingsStore,
     inputs: Inputs,
+    network: NetworkController | None = None,
     lifespan: Any = None,
 ) -> FastAPI:
+    network = network or NetworkController(None, 60)
     app = FastAPI(title="Rickroll Briefcase", version=__version__, lifespan=lifespan)
     templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
     app.mount(
@@ -239,6 +251,34 @@ def create_app(
         except ControllerError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
         return {"position_sec": position, "position": format_time(position)}
+
+    @app.get("/api/network")
+    async def network_status() -> dict[str, Any]:
+        return (await network.status()).to_dict()
+
+    @app.post("/api/network/mode")
+    async def network_mode(body: ModeRequest) -> dict[str, Any]:
+        try:
+            network.request_mode(Mode(body.mode))
+        except NetworkError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return (await network.status()).to_dict()
+
+    @app.post("/api/network/known")
+    async def add_network(body: AddNetworkRequest) -> dict[str, Any]:
+        try:
+            await network.add_network(body.ssid.strip(), body.password)
+        except NetworkError as error:
+            raise _bad_request(error) from error
+        return (await network.status()).to_dict()
+
+    @app.delete("/api/network/known/{name}")
+    async def forget_network(name: str) -> dict[str, Any]:
+        try:
+            await network.forget_network(name)
+        except NetworkError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        return (await network.status()).to_dict()
 
     @app.post("/api/simulate")
     async def simulate(body: SimulateRequest) -> dict[str, Any]:

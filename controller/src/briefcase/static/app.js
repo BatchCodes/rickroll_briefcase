@@ -13,6 +13,14 @@ const STATE_LABELS = {
   error: "Error, retrying",
 };
 
+const WIFI_MODE_LABELS = {
+  hotspot: "Hotspot",
+  client: "Client",
+  switching: "Switching…",
+  offline: "Offline",
+  unavailable: "Unavailable",
+};
+
 const $ = (selector, root = document) => root.querySelector(selector);
 
 let lastStatus = null;
@@ -181,12 +189,74 @@ async function run(action) {
   }
 }
 
+function renderNetwork(network) {
+  const card = $("#wifi-card");
+  card.hidden = !network.available;
+  if (!network.available) return;
+
+  $("#wifi-mode").textContent = WIFI_MODE_LABELS[network.mode] || network.mode;
+  $("#wifi-network").textContent = network.connection || "–";
+  $("#wifi-address").textContent = network.address || "–";
+  const message = $("#wifi-message");
+  message.hidden = !network.message;
+  message.textContent = network.message || "";
+
+  const switching = network.mode === "switching";
+  $("#wifi-client-button").disabled = switching || network.mode === "client";
+  $("#wifi-hotspot-button").disabled = switching || network.mode === "hotspot";
+
+  const host = network.hostname ? `http://${network.hostname}.local` : "the Pi address";
+  $("#wifi-help").textContent =
+    network.mode === "client"
+      ? `Client mode. On this network, open ${host}. After a reboot, the hotspot comes back.`
+      : `"Connect to known Wi-Fi" disconnects your phone from the hotspot. ` +
+        `Then open ${host} on your home network. If no known network connects ` +
+        `in ${Math.round(network.fallback_sec)} s, the hotspot comes back.`;
+
+  const list = $("#known-networks");
+  list.replaceChildren(
+    ...network.known_networks.map((name) => {
+      const item = document.createElement("li");
+      const label = document.createElement("span");
+      label.textContent = name;
+      const forget = document.createElement("button");
+      forget.type = "button";
+      forget.className = "secondary";
+      forget.textContent = "Forget";
+      forget.addEventListener("click", async () => {
+        if (!confirm(`Forget the Wi-Fi network ${name}?`)) return;
+        const result = await run(() =>
+          api("DELETE", `/api/network/known/${encodeURIComponent(name)}`),
+        );
+        if (result) renderNetwork(result);
+      });
+      item.append(label, forget);
+      return item;
+    }),
+  );
+  if (!network.known_networks.length) {
+    const item = document.createElement("li");
+    item.className = "muted";
+    item.textContent = "No known networks. Add one below.";
+    list.append(item);
+  }
+}
+
+async function refreshNetwork() {
+  try {
+    renderNetwork(await api("GET", "/api/network"));
+  } catch (error) {
+    $("#wifi-card").hidden = true;
+  }
+}
+
 async function refreshAll() {
   const [videoList, settings] = await Promise.all([
     api("GET", "/api/videos"),
     api("GET", "/api/settings"),
   ]);
   videos = videoList;
+  refreshNetwork();
   renderVideos();
   renderSettings(settings);
   await refreshStatus();
@@ -293,6 +363,31 @@ function bindEvents() {
     await refreshAll();
   });
 
+  $("#wifi-client-button").addEventListener("click", async () => {
+    if (!confirm("Connect to a known Wi-Fi network? Your phone loses the hotspot.")) {
+      return;
+    }
+    const result = await run(() => api("POST", "/api/network/mode", { mode: "client" }));
+    if (result) renderNetwork(result);
+  });
+  $("#wifi-hotspot-button").addEventListener("click", async () => {
+    const result = await run(() => api("POST", "/api/network/mode", { mode: "hotspot" }));
+    if (result) renderNetwork(result);
+  });
+  $("#add-network-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.target;
+    const result = await run(() =>
+      api("POST", "/api/network/known", {
+        ssid: form.ssid.value,
+        password: form.password.value,
+      }),
+    );
+    if (!result) return;
+    form.reset();
+    renderNetwork(result);
+  });
+
   $("#upload-input").addEventListener("change", (event) => {
     const [file] = event.target.files;
     if (file) upload(file);
@@ -303,3 +398,4 @@ function bindEvents() {
 bindEvents();
 refreshAll().catch((error) => showError(error.message));
 setInterval(refreshStatus, STATUS_POLL_MS);
+setInterval(refreshNetwork, 5000);
