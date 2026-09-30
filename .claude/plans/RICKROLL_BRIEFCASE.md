@@ -160,7 +160,7 @@ docs/software/           # architecture, configuration, API
 2.4. [x] (bd: rickroll_briefcase-679.8) Implement the input abstraction for the lid reed switch and the arm switch: `gpiozero` inputs with debounce, and simulated inputs for development. Add unit tests.
 2.5. [x] (bd: rickroll_briefcase-679.9) Implement the `mpv` IPC client and the state machine. States: disarmed, armed-closed, playing. On close or disarm: pause, mute, display off, then preload the next video (selection mode) at its start position (start mode). On open while armed, or on arm while open: display on, unmute, unpause. At start, read the current switch and lid positions and go into the matching state. Apply the end-of-video setting. Write the settings file atomically. Add unit tests with a fake `mpv`.
 2.6. [x] (bd: rickroll_briefcase-679.10) Implement the FastAPI web app: video library, upload with the `ffprobe` check, rename, delete, test play, all settings in the Decisions table, and the lid and armed status. Store the settings in `config/settings.json`. Add a "reset to defaults" action. Make the page usable on a phone. Add API tests.
-2.7. [ ] (bd: rickroll_briefcase-679.11) Add `compose.yml` for the Pi and `compose.dev.yml` for a laptop. Health checks, restart policies, device mappings and volumes. Confirm that `docker compose -f compose.yml -f compose.dev.yml up` plays the test video on a laptop and that the web app toggles the simulated lid.
+2.7. [x] (bd: rickroll_briefcase-679.11) Add `compose.yml` for the Pi and `compose.dev.yml` for a laptop. Health checks, restart policies, device mappings and volumes. Confirm that `docker compose -f compose.yml -f compose.dev.yml up` plays the test video on a laptop and that the web app toggles the simulated lid.
 
 ## Phase 3: Pi Deployment and CI
 
@@ -197,3 +197,4 @@ Not started. Candidate items: an ESP32 power controller for a long standby time,
 - Step 2.7 found that the default start position (00:30) is after the end of a short video. The controller now starts such a video at 00:00.
 - Step 2.7 added `scripts/write_env.sh`. It writes the user ID and the `video`, `render`, `audio` and `gpio` group IDs to `.env`, because these IDs differ between computers.
 - Step 2.7 also wrote `docs/software/architecture.md`, `configuration.md` and `development.md`, because the README and `CONTRIBUTING.md` link to them. Step 4.4 must still check them.
+- Step 3.1: `scripts/install.sh` passes `shellcheck`, and its boot-file edits were tested on copies of `config.txt` and `cmdline.txt`. It has not run on a real Pi yet. Step 3.4 covers this. On the Pi, the web app uses port 80, so the phone address is `http://10.42.0.1`.

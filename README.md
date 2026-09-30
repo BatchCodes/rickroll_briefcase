@@ -46,7 +46,7 @@ You need a Raspberry Pi 4 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (
 ```bash
 git clone https://github.com/<owner>/rickroll_briefcase.git
 cd rickroll_briefcase
-sudo ./scripts/install.sh
+sudo ./scripts/install.sh --country DE
 ```
 
 The script asks for a Wi-Fi password. It installs Docker, sets up the `RICKROLL-BRIEFCASE` access point and starts the briefcase at each boot.
@@ -54,7 +54,7 @@ The script asks for a Wi-Fi password. It installs Docker, sets up the `RICKROLL-
 Then do these steps:
 
 1. Connect your phone to the `RICKROLL-BRIEFCASE` Wi-Fi network.
-2. Open <http://10.42.0.1:8080> in the phone browser.
+2. Open <http://10.42.0.1> in the phone browser.
 3. Upload a video.
 4. Turn on the arm switch and close the lid.
 5. Give the briefcase to a friend.
