@@ -1,0 +1,43 @@
+{
+  "version": "0.2",
+  "language": "en-GB",
+  "ignorePaths": [
+    ".beads/**",
+    "data/**",
+    "**/*.svg"
+  ],
+  "words": [
+    "aiyima",
+    "anker",
+    "armv",
+    "astley",
+    "berrybase",
+    "buildx",
+    "cmdline",
+    "debounce",
+    "dupont",
+    "fastapi",
+    "ffprobe",
+    "gpiochip",
+    "gpiozero",
+    "ghcr",
+    "goobay",
+    "hostapd",
+    "httpx",
+    "jsonipc",
+    "kenowa",
+    "lgpio",
+    "mpv",
+    "neodymium",
+    "nmcli",
+    "powercore",
+    "pydantic",
+    "pytest",
+    "rickroll",
+    "rickrolled",
+    "shellcheck",
+    "testsrc",
+    "uvicorn",
+    "vcgencmd"
+  ]
+}
