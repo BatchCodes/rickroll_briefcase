@@ -11,7 +11,7 @@ paths:
 
 - Start every standalone script with `set -euo pipefail` right after the shebang:
 
-```
+```bash
 #! /bin/bash
 set -euo pipefail
 ```
@@ -20,7 +20,7 @@ Do not set `set -euo pipefail` in a file that another script **sources** into it
 
 - Wrap a script's logic in functions in almost every case. Add a guard before the call that runs the script. The guard checks whether the script runs directly, not as a sourced file:
 
-```
+```bash
 main() {
   ...
 }
@@ -36,7 +36,7 @@ This keeps every function sourceable and independently testable. A test script c
   - Use `UPPER_SNAKE_CASE` for file-level constants and argv-derived config. Read these once near the top of the script. Examples are paths, urls, and flags.
   - Use `lower_snake_case` for working variables inside a function. Always declare these variables with `local`.
 
-```
+```bash
 notLikeThis() {
   STAGING_DIR="$(mktemp -d)"
 }
@@ -49,7 +49,7 @@ ratherLikeThis() {
 
 - Always double-quote variable expansions. Prefer the `${var}` brace form when the expansion sits directly next to other text. This makes clear where the variable name ends. A variable standing alone does not need the braces:
 
-```
+```bash
 # notLikeThis
 rm -rf $STAGING_DIR/$package_name
 
@@ -62,7 +62,7 @@ rm -f "$package_name"
 
 Braces are always required for a parameter expansion operator. This rule applies regardless of adjacency. Examples are a default value and a prefix or suffix strip:
 
-```
+```bash
 STABILITY="${STABILITY:-test}"
 code="${pair%%:*}"
 ```
@@ -73,7 +73,7 @@ code="${pair%%:*}"
 
 - Prefer a guard clause over a nested branch. Check the failure condition first. Then run `continue`, `return`, or `exit`. Do not wrap the success path in a branch.
 
-```
+```bash
 if [[ -f "$dest_path" ]]; then
   echo "File already exists: $filename, skipping."
   continue
@@ -99,13 +99,13 @@ fi
 
 - Use the `install` command instead of `cp` when a copied file needs a specific owner, group, or permission mode.
 
-```
+```bash
 install -D -o root -g root -m 0644 "${src_path}" "${dest_path}"
 ```
 
 - Split a long command's flags across multiple lines, one flag per line, with a trailing backslash, instead of one long line:
 
-```
+```bash
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   --volume "${work_dir}:/work" \
@@ -137,7 +137,7 @@ docker run --rm \
 
 - Prefer a complete `if` block over a `condition && command` or `condition || command` one-liner used for control flow:
 
-```
+```bash
 # notLikeThis
 [[ -f "${configPath}" ]] && rm "${configPath}"
 
@@ -155,7 +155,7 @@ A one-liner hides the command's own exit status inside the `&&`/`||` chain. Unde
   - For a script with one or two fixed, caller-controlled arguments, use plain positional parameters, for example `REPO=$1` and `TAG=$2`.
   - For a script with `--flag`-style options, use a manual `while [[ $# -gt 0 ]]; do case "$1" in ... esac; shift; done` loop. This loop must support both `--flag value` and `--flag=value`. Do not use `getopts`.
 
-```
+```bash
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --stability)
@@ -178,14 +178,14 @@ done
 
 - Use `trap ... EXIT` for cleanup whenever a script creates a temp file or directory. This removes it even on an early `exit` or an error:
 
-```
+```bash
 workdir="$(mktemp -d)"
 trap 'rm -rf "${workdir}"' EXIT
 ```
 
 - To source a sibling script, resolve the current script's own directory first. Do not assume the caller's `cwd`:
 
-```
+```bash
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 # shellcheck source=SCRIPT_DIR/other.sh
 source "${SCRIPT_DIR}/other.sh"

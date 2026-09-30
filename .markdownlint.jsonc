@@ -1,0 +1,7 @@
+{
+  // Prose is not hard-wrapped. Prettier formats the files.
+  "MD013": false,
+  // Headings in a bug report template are not a document outline.
+  "MD041": false,
+  "MD024": { "siblings_only": true }
+}

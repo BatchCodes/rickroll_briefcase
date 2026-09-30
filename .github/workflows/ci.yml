@@ -1,0 +1,61 @@
+name: "CI"
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+permissions:
+  contents: "read"
+
+jobs:
+  controller_tests:
+    name: "Controller tests and lint"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Run ruff and pytest in Docker"
+        run: "docker compose -f compose.test.yml run --rm --build test"
+
+  shellcheck:
+    name: "Shell scripts"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Run shellcheck"
+        run: >-
+          docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:stable
+          -x scripts/*.sh tools/*.sh player/*.sh
+
+  docs:
+    name: "Markdown lint and spelling"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+      - uses: "DavidAnson/markdownlint-cli2-action@v19"
+        with:
+          globs: "**/*.md"
+      - uses: "streetsidesoftware/cspell-action@v6"
+        with:
+          files: "**/*.md"
+          incremental_files_only: false
+
+  integration:
+    name: "Laptop mode smoke test"
+    runs-on: "ubuntu-latest"
+    env:
+      BRIEFCASE_PLAYER_OUTPUT: "null"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Write the environment file"
+        run: "./scripts/write_env.sh"
+      - name: "Make a test video"
+        run: "./tools/make_test_video.sh --duration 40"
+      - name: "Start the containers"
+        run: "docker compose -f compose.yml -f compose.dev.yml up -d --build --wait"
+      - name: "Check that the lid starts and stops the video"
+        run: "./scripts/smoke_test.sh http://localhost:8080"
+      - name: "Show the logs"
+        if: always()
+        run: "docker compose -f compose.yml -f compose.dev.yml logs"
