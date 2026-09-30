@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" width="760" height="360" font-family="Helvetica, Arial, sans-serif" font-size="14">
+  <title>Rickroll Briefcase system overview</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333333"/>
+    </marker>
+    <marker id="arrowp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d08a00"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="760" height="360" fill="#f6f6f6"/>
+  <rect x="20" y="40" width="170" height="60" fill="#ffffff" stroke="#333333" stroke-width="2" rx="8"/>
+  <text x="105" y="66" fill="#111111" text-anchor="middle">Lid reed switch</text>
+  <text x="105" y="86" fill="#444444" text-anchor="middle" font-size="12">KY-021 and magnet</text>
+  <rect x="20" y="130" width="170" height="60" fill="#ffffff" stroke="#333333" stroke-width="2" rx="8"/>
+  <text x="105" y="156" fill="#111111" text-anchor="middle">Arm switch</text>
+  <text x="105" y="176" fill="#444444" text-anchor="middle" font-size="12">external toggle</text>
+  <rect x="20" y="250" width="170" height="70" fill="#ffffff" stroke="#333333" stroke-width="2" rx="8"/>
+  <text x="105" y="281" fill="#111111" text-anchor="middle">USB-C power bank</text>
+  <text x="105" y="301" fill="#444444" text-anchor="middle" font-size="12">Anker 737, 86 Wh</text>
+  <rect x="290" y="60" width="190" height="130" fill="#fde8ec" stroke="#c51a4a" stroke-width="2" rx="8"/>
+  <text x="385" y="92" fill="#111111" text-anchor="middle" font-weight="bold">Raspberry Pi 4</text>
+  <text x="385" y="118" fill="#444444" text-anchor="middle" font-size="12">controller container</text>
+  <text x="385" y="138" fill="#444444" text-anchor="middle" font-size="12">player container (mpv)</text>
+  <text x="385" y="158" fill="#444444" text-anchor="middle" font-size="12">Wi-Fi access point</text>
+  <rect x="570" y="60" width="170" height="70" fill="#ffffff" stroke="#333333" stroke-width="2" rx="8"/>
+  <text x="655" y="91" fill="#111111" text-anchor="middle">13.3" monitor</text>
+  <text x="655" y="111" fill="#444444" text-anchor="middle" font-size="12">HDMI video and audio</text>
+  <rect x="570" y="190" width="170" height="60" fill="#ffffff" stroke="#333333" stroke-width="2" rx="8"/>
+  <text x="655" y="216" fill="#111111" text-anchor="middle">Phone browser</text>
+  <text x="655" y="236" fill="#444444" text-anchor="middle" font-size="12">web app</text>
+  <path d="M190,70 L288,92" stroke="#333333" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="240" y="70" fill="#444444" text-anchor="middle" font-size="12">GPIO</text>
+  <path d="M190,160 L288,148" stroke="#333333" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="240" y="146" fill="#444444" text-anchor="middle" font-size="12">GPIO</text>
+  <path d="M480,97 L568,95" stroke="#333333" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="524" y="88" fill="#444444" text-anchor="middle" font-size="12">HDMI</text>
+  <path d="M570,220 L482,172" stroke="#333333" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="540" y="186" fill="#444444" text-anchor="middle" font-size="12">Wi-Fi</text>
+  <path d="M190,280 L330,192" stroke="#d08a00" stroke-width="2" stroke-dasharray="6 4" fill="none" marker-end="url(#arrowp)"/>
+  <path d="M190,300 L752,300 L752,95 L743,95" stroke="#d08a00" stroke-width="2" stroke-dasharray="6 4" fill="none" marker-end="url(#arrowp)"/>
+  <text x="420" y="292" fill="#444444" text-anchor="middle" font-size="12">USB-C power</text>
+</svg>

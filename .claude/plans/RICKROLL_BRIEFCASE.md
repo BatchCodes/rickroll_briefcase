@@ -146,7 +146,7 @@ docs/software/           # architecture, configuration, API
 ### Implementation Steps
 
 1.1. [x] (bd: rickroll_briefcase-679.1) Clean `.claude/` according to the Q5 decisions. Replace the Python rule with a PEP 8 and `ruff` rule. Add `.gitignore`, `.editorconfig`, `.dockerignore` and `cspell.json`. Make the first commit.
-1.2. [ ] (bd: rickroll_briefcase-679.2) Add `LICENSE` (MIT, "The rickroll_briefcase contributors"), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant), `SECURITY.md` and GitHub issue and pull request templates.
+1.2. [x] (bd: rickroll_briefcase-679.2) Add `LICENSE` (MIT, "The rickroll_briefcase contributors"), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant), `SECURITY.md` and GitHub issue and pull request templates.
 1.3. [ ] (bd: rickroll_briefcase-679.3) Add the first `README.md`: what the project is, a photo or diagram placeholder, the feature list, the copyright note about the video, a quick start for the laptop and a quick start for the Pi, and links to `docs/`.
 1.4. [ ] (bd: rickroll_briefcase-679.4) Add `tools/`: a Docker `ffmpeg` script that makes a test video with a visible timecode, and a script that transcodes any user video to 1080p30 H.264 with AAC.
 
