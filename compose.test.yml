@@ -1,0 +1,8 @@
+services:
+  test:
+    build:
+      context: ./controller
+      target: test
+    volumes:
+      - ./controller/src:/app/src:ro
+      - ./controller/tests:/app/tests:ro
