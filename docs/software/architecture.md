@@ -21,15 +21,15 @@ The `player` container runs `mpv` in idle mode. `mpv` writes the picture directl
 
 The `controller` container runs one Python process with these parts:
 
-| Module          | Function                                                                       |
-| --------------- | ------------------------------------------------------------------------------ |
-| `inputs.py`     | reads the reed switch and the arm switch with `gpiozero`, or simulates them    |
-| `mpv.py`        | the `mpv` IPC client, with automatic reconnection                              |
-| `controller.py` | the state machine                                                              |
-| `library.py`    | the video files: list, upload, rename, delete and format check                 |
-| `settings.py`   | the playback settings, their defaults and the atomic settings file             |
-| `display.py`    | optional monitor power commands                                                |
-| `web.py`        | the FastAPI JSON API and the phone web page                                    |
+| Module          | Function                                                                    |
+| --------------- | --------------------------------------------------------------------------- |
+| `inputs.py`     | reads the reed switch and the arm switch with `gpiozero`, or simulates them |
+| `mpv.py`        | the `mpv` IPC client, with automatic reconnection                           |
+| `controller.py` | the state machine                                                           |
+| `library.py`    | the video files: list, upload, rename, delete and format check              |
+| `settings.py`   | the playback settings, their defaults and the atomic settings file          |
+| `display.py`    | optional monitor power commands                                             |
+| `web.py`        | the FastAPI JSON API and the phone web page                                 |
 
 ## Instant Start
 
@@ -37,16 +37,16 @@ A cold start of a video player takes too long for the gag. Thus the controller a
 
 ## States
 
-| State            | Meaning                                                                  |
-| ---------------- | ------------------------------------------------------------------------ |
-| `starting`       | the controller has not finished its first check                          |
-| `player_offline` | the controller cannot connect to `mpv`. It tries again each second       |
-| `no_video`       | the library is empty                                                     |
+| State            | Meaning                                                                   |
+| ---------------- | ------------------------------------------------------------------------- |
+| `starting`       | the controller has not finished its first check                           |
+| `player_offline` | the controller cannot connect to `mpv`. It tries again each second        |
+| `no_video`       | the library is empty                                                      |
 | `disarmed`       | the arm switch is off. The video is loaded, but the lid does not start it |
-| `ready`          | armed, lid closed, video loaded and paused                               |
-| `playing`        | armed and lid open, or a test play from the web app                      |
-| `finished`       | the video ended with the `stop` end action. The screen is black          |
-| `error`          | a command failed. The controller tries again after 5 s                   |
+| `ready`          | armed, lid closed, video loaded and paused                                |
+| `playing`        | armed and lid open, or a test play from the web app                       |
+| `finished`       | the video ended with the `stop` end action. The screen is black           |
+| `error`          | a command failed. The controller tries again after 5 s                    |
 
 The video plays when the briefcase is armed **and** the lid is open. At start, the controller reads the positions of both switches. Thus, if the arm switch is on and the lid is open at the end of a boot, the video plays with no user action.
 

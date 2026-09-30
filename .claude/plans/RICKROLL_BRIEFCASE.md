@@ -26,15 +26,15 @@ The brief comes from the shared ChatGPT conversation "Build Rickroll Briefcase".
 
 ### Hardware decisions from the conversation
 
-| Item                  | Part                                                              | Notes                                                                                                                  |
-| --------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Computer              | Raspberry Pi 4 (2 GB is sufficient)                               | The user has a Pi 4. The conversation dropped the ESP32. The Pi Zero 2 W is a supported lower-power target. |
-| Display               | Kenowa 13.3" 1080p portable monitor, HDMI input, USB-C power      | It has built-in speakers. Test these speakers first.                                                                 |
-| Battery               | Anker 737 PowerCore 24K (A1289), 24,000 mAh, approximately 86 Wh  | Two USB-C outputs: one for the Pi, one for the monitor. It has a low-current mode. It is below the 100 Wh flight limit. |
-| Lid sensor            | KY-021 reed switch module and a neodymium magnet                  | One GPIO input.                                                                                                        |
-| External switch       | Goobay 10013 on/off switch (prototype)                            | It is a GPIO input for "armed" and "disarmed". It is not in the USB-C PD power path.                                                      |
-| Audio (optional)      | PAM8403 amplifier and 2× 4 Ω 3 W 40 mm speakers                   | Buy these only if the monitor speakers are too weak.                                                                   |
-| Cables and prototyping | HDMI cable, 2× USB-C cable, GPIO header, Dupont wires, breadboard | The Pi 4 has micro-HDMI outputs. Use a micro-HDMI to HDMI cable.                                                       |
+| Item                   | Part                                                              | Notes                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Computer               | Raspberry Pi 4 (2 GB is sufficient)                               | The user has a Pi 4. The conversation dropped the ESP32. The Pi Zero 2 W is a supported lower-power target.             |
+| Display                | Kenowa 13.3" 1080p portable monitor, HDMI input, USB-C power      | It has built-in speakers. Test these speakers first.                                                                    |
+| Battery                | Anker 737 PowerCore 24K (A1289), 24,000 mAh, approximately 86 Wh  | Two USB-C outputs: one for the Pi, one for the monitor. It has a low-current mode. It is below the 100 Wh flight limit. |
+| Lid sensor             | KY-021 reed switch module and a neodymium magnet                  | One GPIO input.                                                                                                         |
+| External switch        | Goobay 10013 on/off switch (prototype)                            | It is a GPIO input for "armed" and "disarmed". It is not in the USB-C PD power path.                                    |
+| Audio (optional)       | PAM8403 amplifier and 2× 4 Ω 3 W 40 mm speakers                   | Buy these only if the monitor speakers are too weak.                                                                    |
+| Cables and prototyping | HDMI cable, 2× USB-C cable, GPIO header, Dupont wires, breadboard | The Pi 4 has micro-HDMI outputs. Use a micro-HDMI to HDMI cable.                                                        |
 
 Estimated power is 10 W to 13 W while the video plays. The usable battery energy is approximately 70 Wh to 75 Wh. Thus the run time is approximately 5 to 7 hours while the video plays. While the case is closed, the Pi idles at approximately 3 W. The monitor can then be off.
 
@@ -122,16 +122,16 @@ docs/software/           # architecture, configuration, API
 - Q5 Python style -> PEP 8 with `ruff` (lint and format). Replace `.claude/rules/code-style-python.md` with a PEP 8 rule.
 - Multiple videos and start points (user note) -> the web app configures all of these items. Each item has a default, so the briefcase operates correctly with no configuration:
 
-  | Setting                  | Scope      | Values                                                          | Default                                       |
-  | ------------------------ | ---------- | --------------------------------------------------------------- | --------------------------------------------- |
-  | Selection mode           | global     | `single` (the armed video), `cycle`, `shuffle`                  | `single`                                      |
-  | Armed video              | global     | any video in the library                                        | the first video in the library                |
-  | Start mode               | per video  | `fixed`, `beginning`, `random` (from the cue points), `resume`  | `fixed`                                       |
-  | Start position           | per video  | a time, for example `00:30`                                     | the global default start position             |
-  | Cue points               | per video  | a list of times for the `random` start mode                     | empty                                         |
-  | Default start position   | global     | a time                                                          | `00:30`, from the brief                       |
-  | End of video             | per video  | `loop`, `stop` (black screen)                                   | `loop`                                        |
-  | Volume                   | global     | 0 to 100                                                        | 80                                            |
+  | Setting                | Scope     | Values                                                         | Default                           |
+  | ---------------------- | --------- | -------------------------------------------------------------- | --------------------------------- |
+  | Selection mode         | global    | `single` (the armed video), `cycle`, `shuffle`                 | `single`                          |
+  | Armed video            | global    | any video in the library                                       | the first video in the library    |
+  | Start mode             | per video | `fixed`, `beginning`, `random` (from the cue points), `resume` | `fixed`                           |
+  | Start position         | per video | a time, for example `00:30`                                    | the global default start position |
+  | Cue points             | per video | a list of times for the `random` start mode                    | empty                             |
+  | Default start position | global    | a time                                                         | `00:30`, from the brief           |
+  | End of video           | per video | `loop`, `stop` (black screen)                                  | `loop`                            |
+  | Volume                 | global    | 0 to 100                                                       | 80                                |
 
 - Zero-touch operation (user note) -> the briefcase is an appliance. No step needs a keyboard, a mouse, a login, a desktop or a window. Rules:
   - The Pi has no desktop. The player writes full screen directly to HDMI with `mpv --vo=drm`. There are no windows to maximise.
@@ -168,7 +168,7 @@ docs/software/           # architecture, configuration, API
 
 3.1. [x] (bd: rickroll_briefcase-679.12) Write `scripts/install.sh` for Raspberry Pi OS Lite 64-bit: install Docker, add the user to the `docker` and `gpio` groups, configure the NetworkManager Wi-Fi access point with a WPA2 password that the script asks for, set HDMI and audio options in `config.txt`, disable the console login prompt and cursor on the HDMI output, install a systemd unit that starts Docker Compose at boot, and optionally disable Bluetooth and the LEDs to decrease power.
 3.2. [x] (bd: rickroll_briefcase-679.13) Add GitHub Actions: `ruff` and `pytest` in Docker, `shellcheck`, a Markdown lint and spell check, and a `docker buildx` build for `linux/arm64` and `linux/amd64`. Push the images to GHCR on a tag.
-3.3. [ ] (bd: rickroll_briefcase-679.14) Make `compose.yml` pull the GHCR images by default, with a local build as an option. Add release notes and a version tag procedure to `CONTRIBUTING.md`.
+3.3. [x] (bd: rickroll_briefcase-679.14) Make `compose.yml` pull the GHCR images by default, with a local build as an option. Add release notes and a version tag procedure to `CONTRIBUTING.md`.
 3.4. [ ] (bd: rickroll_briefcase-679.15) Acceptance test on the Pi 4: with no keyboard or mouse, remove and apply power, then confirm that the briefcase is ready within the boot target and plays when a person opens the lid. Toggle the arm switch and the lid 20 times. Pull the power during playback and confirm a clean restart. Record the results in `docs/software/player.md`.
 
 ## Phase 4: Hardware and Build Guide
@@ -199,3 +199,4 @@ Not started. Candidate items: an ESP32 power controller for a long standby time,
 - Step 2.7 also wrote `docs/software/architecture.md`, `configuration.md` and `development.md`, because the README and `CONTRIBUTING.md` link to them. Step 4.4 must still check them.
 - Step 3.1: `scripts/install.sh` passes `shellcheck`, and its boot-file edits were tested on copies of `config.txt` and `cmdline.txt`. It has not run on a real Pi yet. Step 3.4 covers this. On the Pi, the web app uses port 80, so the phone address is `http://10.42.0.1`.
 - Step 3.2: the workflows were not run on GitHub, because the repository has no remote yet. The same checks pass locally in Docker: tests, `shellcheck`, `markdownlint-cli2`, `cspell` and `scripts/smoke_test.sh`.
+- Steps 2.2 and 3.4 stay open, because they need the real Pi 4 and the Kenowa monitor. `docs/software/player.md` has the test procedures and empty results tables. `scripts/pi_check.sh` prints the boot-to-ready time and the player properties.

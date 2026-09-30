@@ -35,12 +35,12 @@ Push "Close lid" to stop the video. The player loads the video again, paused at 
 
 ## Compose Files
 
-| File               | Use                                                                        |
-| ------------------ | -------------------------------------------------------------------------- |
-| `compose.yml`      | the Pi system: GPIO inputs and full-screen DRM output                      |
-| `compose.dev.yml`  | an override for a laptop: local image builds, simulated inputs and a desktop window |
+| File                | Use                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------- |
+| `compose.yml`       | the Pi system: GPIO inputs and full-screen DRM output                                     |
+| `compose.dev.yml`   | an override for a laptop: local image builds, simulated inputs and a desktop window       |
 | `compose.build.yml` | an override for a Pi that builds the images itself, instead of downloading them from GHCR |
-| `compose.test.yml` | the controller tests and linters                                           |
+| `compose.test.yml`  | the controller tests and linters                                                          |
 
 To run without a window, for example on a server, set the player output to `null`:
 
@@ -85,12 +85,12 @@ curl -s http://localhost:8080/api/status
 
 ## Troubleshooting
 
-| Problem                                   | Cause and fix                                                                                             |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Problem                                                             | Cause and fix                                                                                                     |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | The player log shows `Failed initializing any suitable GPU context` | The container cannot open `/dev/dri/renderD128`. Run `./scripts/write_env.sh` again, then restart the containers. |
-| There is no sound                         | The container cannot find the PulseAudio socket. Make sure that `$XDG_RUNTIME_DIR/pulse/native` exists.   |
-| The web app shows "No video"              | `data/videos/` is empty. Run `./tools/make_test_video.sh` or upload a video.                              |
-| The web app shows "Player offline"        | The player container does not run. Read `docker compose logs player`.                                     |
+| There is no sound                                                   | The container cannot find the PulseAudio socket. Make sure that `$XDG_RUNTIME_DIR/pulse/native` exists.           |
+| The web app shows "No video"                                        | `data/videos/` is empty. Run `./tools/make_test_video.sh` or upload a video.                                      |
+| The web app shows "Player offline"                                  | The player container does not run. Read `docker compose logs player`.                                             |
 
 ## See also
 
