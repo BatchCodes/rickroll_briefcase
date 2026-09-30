@@ -1,3 +1,4 @@
 {
-  "ignores": [".beads/**", "data/**", "node_modules/**"]
+  // The skills in .claude/skills come from outside this project.
+  "ignores": [".beads/**", "data/**", "node_modules/**", ".claude/skills/**"]
 }
