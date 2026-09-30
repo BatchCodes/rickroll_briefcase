@@ -35,6 +35,8 @@ The script is safe to run again.
   --no-hotspot         do not make the Wi-Fi access point
   --power-save         turn off Bluetooth and the board LEDs to decrease power
   --keep-console       keep the login prompt on the HDMI screen
+  --build              build the images on the Pi instead of downloading them
+                       (slow: approximately 10 to 20 minutes on a Pi 4)
   -h, --help           show this help
 
 The access point starts at the next boot. If you use SSH over Wi-Fi now, the
@@ -49,6 +51,7 @@ parse_args() {
   MAKE_HOTSPOT=1
   POWER_SAVE=0
   KEEP_CONSOLE=0
+  BUILD_LOCALLY=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -86,6 +89,10 @@ parse_args() {
         ;;
       --keep-console)
         KEEP_CONSOLE=1
+        shift
+        ;;
+      --build)
+        BUILD_LOCALLY=1
         shift
         ;;
       -h | --help)
@@ -182,6 +189,38 @@ write_env() {
   set_env_value BRIEFCASE_PLAYER_OUTPUT drm
   set_env_value BRIEFCASE_HTTP_PORT 80
   set_env_value BRIEFCASE_PLAYER_EXTRA_ARGS "$(hdmi_audio_args)"
+  choose_images
+}
+
+image_owner() {
+  local remote_url
+  local owner
+
+  if ! remote_url="$(git -C "${REPO_DIR}" remote get-url origin 2>/dev/null)"; then
+    return 1
+  fi
+  owner="$(printf '%s\n' "${remote_url}" | sed -nE 's#^(https://|git@)github\.com[:/]([^/]+)/.*#\2#p')"
+  if [[ -z "${owner}" ]]; then
+    return 1
+  fi
+  printf '%s\n' "${owner}" | tr '[:upper:]' '[:lower:]'
+}
+
+choose_images() {
+  local owner
+
+  if [[ "${BUILD_LOCALLY}" -eq 0 ]] && owner="$(image_owner)"; then
+    set_env_value BRIEFCASE_IMAGE_OWNER "${owner}"
+    set_env_value COMPOSE_FILE "${REPO_DIR}/compose.yml"
+    printf 'The Pi downloads the images from ghcr.io/%s.\n' "${owner}"
+    return 0
+  fi
+
+  if [[ "${BUILD_LOCALLY}" -eq 0 ]]; then
+    printf 'The git remote is not on GitHub, so the Pi builds the images itself.\n'
+    BUILD_LOCALLY=1
+  fi
+  set_env_value COMPOSE_FILE "${REPO_DIR}/compose.yml:${REPO_DIR}/compose.build.yml"
 }
 
 set_env_value() {
@@ -310,8 +349,8 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=${REPO_DIR}
-ExecStart=/usr/bin/docker compose -f compose.yml up -d --remove-orphans
-ExecStop=/usr/bin/docker compose -f compose.yml stop
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose stop
 TimeoutStartSec=0
 
 [Install]
@@ -323,7 +362,12 @@ SERVICE
 
 start_containers() {
   log_step "Containers"
-  docker compose --project-directory "${REPO_DIR}" -f "${REPO_DIR}/compose.yml" up -d --build
+  if [[ "${BUILD_LOCALLY}" -eq 1 ]]; then
+    docker compose --project-directory "${REPO_DIR}" build
+  else
+    docker compose --project-directory "${REPO_DIR}" pull
+  fi
+  docker compose --project-directory "${REPO_DIR}" up -d --remove-orphans
 }
 
 print_summary() {

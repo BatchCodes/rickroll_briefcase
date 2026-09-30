@@ -38,7 +38,8 @@ Push "Close lid" to stop the video. The player loads the video again, paused at 
 | File               | Use                                                                        |
 | ------------------ | -------------------------------------------------------------------------- |
 | `compose.yml`      | the Pi system: GPIO inputs and full-screen DRM output                      |
-| `compose.dev.yml`  | an override for a laptop: simulated inputs and a desktop window            |
+| `compose.dev.yml`  | an override for a laptop: local image builds, simulated inputs and a desktop window |
+| `compose.build.yml` | an override for a Pi that builds the images itself, instead of downloading them from GHCR |
 | `compose.test.yml` | the controller tests and linters                                           |
 
 To run without a window, for example on a server, set the player output to `null`:

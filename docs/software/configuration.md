@@ -21,6 +21,9 @@ docker compose up -d
 | `RENDER_GID`                    | `105`       | the host `render` group, for `/dev/dri/renderD*`                                                    |
 | `AUDIO_GID`                     | `29`        | the host `audio` group, for `/dev/snd`                                                              |
 | `GPIO_GID`                      | `993`       | the host `gpio` group, for `/dev/gpiochip0`                                                         |
+| `COMPOSE_FILE`                  | `compose.yml` | the Compose files. `install.sh` adds `compose.build.yml` when the Pi builds the images itself |
+| `BRIEFCASE_IMAGE_OWNER`         | `rickroll-briefcase` | the GitHub owner of the GHCR images, in lower case. `install.sh` gets it from the git remote |
+| `BRIEFCASE_VERSION`             | `latest`    | the image tag, for example `0.1.0`                                                                  |
 | `BRIEFCASE_DATA_DIR`            | `./data`    | the directory for `videos/` and `config/`                                                           |
 | `BRIEFCASE_HTTP_PORT`           | `8080`      | the web app port on the host                                                                        |
 | `BRIEFCASE_INPUT_BACKEND`       | `gpio`      | `gpio` on a Pi, `simulated` on a laptop                                                             |

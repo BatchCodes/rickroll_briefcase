@@ -49,7 +49,7 @@ cd rickroll_briefcase
 sudo ./scripts/install.sh --country DE
 ```
 
-The script asks for a Wi-Fi password. It installs Docker, sets up the `RICKROLL-BRIEFCASE` access point and starts the briefcase at each boot.
+The script asks for a Wi-Fi password. It installs Docker, sets up the `RICKROLL-BRIEFCASE` access point, downloads the container images and starts the briefcase at each boot. Use your own Wi-Fi country code instead of `DE`. To build the images on the Pi instead of downloading them, add `--build`. Run `./scripts/install.sh --help` for all options.
 
 Then do these steps:
 

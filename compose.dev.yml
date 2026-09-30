@@ -1,5 +1,9 @@
 services:
   player:
+    image: rickroll_briefcase-player:local
+    build:
+      context: ./player
+    pull_policy: build
     group_add: !override
       - "${VIDEO_GID:-44}"
       - "${RENDER_GID:-105}"
@@ -17,6 +21,11 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
 
   controller:
+    image: rickroll_briefcase-controller:local
+    build:
+      context: ./controller
+      target: runtime
+    pull_policy: build
     group_add: !reset []
     devices: !reset []
     environment:

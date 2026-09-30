@@ -2,9 +2,7 @@ name: rickroll_briefcase
 
 services:
   player:
-    image: rickroll_briefcase-player:local
-    build:
-      context: ./player
+    image: "ghcr.io/${BRIEFCASE_IMAGE_OWNER:-rickroll-briefcase}/rickroll_briefcase-player:${BRIEFCASE_VERSION:-latest}"
     restart: unless-stopped
     user: "${BRIEFCASE_UID:-1000}:${BRIEFCASE_GID:-1000}"
     group_add:
@@ -22,10 +20,7 @@ services:
       - player_socket:/run/briefcase
 
   controller:
-    image: rickroll_briefcase-controller:local
-    build:
-      context: ./controller
-      target: runtime
+    image: "ghcr.io/${BRIEFCASE_IMAGE_OWNER:-rickroll-briefcase}/rickroll_briefcase-controller:${BRIEFCASE_VERSION:-latest}"
     restart: unless-stopped
     user: "${BRIEFCASE_UID:-1000}:${BRIEFCASE_GID:-1000}"
     depends_on:

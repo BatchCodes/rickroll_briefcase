@@ -167,7 +167,7 @@ docs/software/           # architecture, configuration, API
 ### Implementation Steps
 
 3.1. [x] (bd: rickroll_briefcase-679.12) Write `scripts/install.sh` for Raspberry Pi OS Lite 64-bit: install Docker, add the user to the `docker` and `gpio` groups, configure the NetworkManager Wi-Fi access point with a WPA2 password that the script asks for, set HDMI and audio options in `config.txt`, disable the console login prompt and cursor on the HDMI output, install a systemd unit that starts Docker Compose at boot, and optionally disable Bluetooth and the LEDs to decrease power.
-3.2. [ ] (bd: rickroll_briefcase-679.13) Add GitHub Actions: `ruff` and `pytest` in Docker, `shellcheck`, a Markdown lint and spell check, and a `docker buildx` build for `linux/arm64` and `linux/amd64`. Push the images to GHCR on a tag.
+3.2. [x] (bd: rickroll_briefcase-679.13) Add GitHub Actions: `ruff` and `pytest` in Docker, `shellcheck`, a Markdown lint and spell check, and a `docker buildx` build for `linux/arm64` and `linux/amd64`. Push the images to GHCR on a tag.
 3.3. [ ] (bd: rickroll_briefcase-679.14) Make `compose.yml` pull the GHCR images by default, with a local build as an option. Add release notes and a version tag procedure to `CONTRIBUTING.md`.
 3.4. [ ] (bd: rickroll_briefcase-679.15) Acceptance test on the Pi 4: with no keyboard or mouse, remove and apply power, then confirm that the briefcase is ready within the boot target and plays when a person opens the lid. Toggle the arm switch and the lid 20 times. Pull the power during playback and confirm a clean restart. Record the results in `docs/software/player.md`.
 
