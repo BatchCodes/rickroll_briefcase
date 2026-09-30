@@ -145,7 +145,7 @@ docs/software/           # architecture, configuration, API
 
 ### Implementation Steps
 
-1.1. [ ] (bd: rickroll_briefcase-679.1) Clean `.claude/` according to the Q5 decisions. Replace the Python rule with a PEP 8 and `ruff` rule. Add `.gitignore`, `.editorconfig`, `.dockerignore` and `cspell.json`. Make the first commit.
+1.1. [x] (bd: rickroll_briefcase-679.1) Clean `.claude/` according to the Q5 decisions. Replace the Python rule with a PEP 8 and `ruff` rule. Add `.gitignore`, `.editorconfig`, `.dockerignore` and `cspell.json`. Make the first commit.
 1.2. [ ] (bd: rickroll_briefcase-679.2) Add `LICENSE` (MIT, "The rickroll_briefcase contributors"), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant), `SECURITY.md` and GitHub issue and pull request templates.
 1.3. [ ] (bd: rickroll_briefcase-679.3) Add the first `README.md`: what the project is, a photo or diagram placeholder, the feature list, the copyright note about the video, a quick start for the laptop and a quick start for the Pi, and links to `docs/`.
 1.4. [ ] (bd: rickroll_briefcase-679.4) Add `tools/`: a Docker `ffmpeg` script that makes a test video with a visible timecode, and a script that transcodes any user video to 1080p30 H.264 with AAC.
@@ -187,3 +187,6 @@ Not started. Candidate items: an ESP32 power controller for a long standby time,
 ## Findings
 
 - bd has no database in this repository yet. The first `--implement` call must run `bd init` before it creates the epic.
+- The git top level was a parent directory, not this directory. Step 1.1 ran `git init` in this directory to make it a separate repository.
+- bd was initialised with the prefix `rickroll_briefcase`. `.beads/` is in `.gitignore`, so the public repository does not contain the private task list.
+- The committed `.claude/settings.json` runs `bd prime` only if `bd` and `.beads/` exist, so contributors without bd get no hook error. `settings.local.json` stays local and is ignored by git.
