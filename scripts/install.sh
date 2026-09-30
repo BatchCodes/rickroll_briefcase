@@ -14,6 +14,7 @@ DOCKER_INSTALL_URL="https://get.docker.com"
 CONFIG_BEGIN="# rickroll_briefcase begin"
 CONFIG_END="# rickroll_briefcase end"
 CMDLINE_PARAMS=(
+  "video=HDMI-A-1:1920x1080@60D"
   "consoleblank=0"
   "logo.nologo"
   "quiet"

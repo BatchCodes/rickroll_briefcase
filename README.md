@@ -1,5 +1,7 @@
 # Rickroll Briefcase
 
+![Rick Astley dances in the "Never Gonna Give You Up" music video](https://media.giphy.com/media/Vuw9m5wXviFIQ/giphy.gif)
+
 A briefcase that plays a video when a person opens it. The classic video is "Never Gonna Give You Up" by Rick Astley. Close the lid and the video stops. Open it again and the video starts again, immediately.
 
 ![Diagram of the briefcase system: the lid sensor and the arm switch connect to a Raspberry Pi, which shows the video on a 13.3 inch monitor](docs/images/system_overview.svg)
@@ -44,6 +46,7 @@ Open <http://localhost:8080>. Use the "Lid" and "Arm" buttons to simulate the br
 You need a Raspberry Pi 4 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (64-bit). Build the hardware first. Refer to the [hardware guide](docs/hardware/parts.md).
 
 ```bash
+sudo apt install -y git
 git clone https://github.com/BatchCodes/rickroll_briefcase.git
 cd rickroll_briefcase
 sudo ./scripts/install.sh --country DE
@@ -58,6 +61,24 @@ Then do these steps:
 3. Upload a video.
 4. Turn on the arm switch and close the lid.
 5. Give the briefcase to a friend.
+
+## Updating
+
+An update needs an internet connection. The briefcase Wi-Fi is an access point, so it has no internet. Use one of these methods:
+
+- On a Pi 4, connect an Ethernet cable to your router.
+- On the web page, push "Connect to known Wi-Fi". The Pi then connects to a Wi-Fi network that it knows. If it cannot connect in 60 s, it goes back to the access point. After a reboot, the Pi is always an access point again.
+
+Then run these commands on the Pi, for example over SSH:
+
+```bash
+cd rickroll_briefcase
+git pull
+docker compose pull
+docker compose up -d
+```
+
+If you installed with `--build`, run `docker compose build` instead of `docker compose pull`. You can also run `sudo ./scripts/install.sh` again. It is safe to run more than one time.
 
 ## Documentation
 
@@ -79,4 +100,4 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first.
 
 ## Licence
 
-The software and the documentation use the [MIT licence](LICENSE). The licence does not cover videos that you add to the briefcase.
+The software and the documentation use the [MIT licence](LICENSE). The licence does not cover videos that you add to the briefcase. The GIF at the top of this page comes from [GIPHY](https://giphy.com/gifs/Vuw9m5wXviFIQ) and is not part of this repository.

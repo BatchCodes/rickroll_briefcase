@@ -186,7 +186,7 @@ These steps come from a review after phase 3, before the first Pi test.
 
 ### Open Questions
 
-- [ ] Q6: In client mode, the Pi connects to the Wi-Fi networks that it already knows (NetworkManager connections, for example from Raspberry Pi Imager). Must the web page also let a user add a new network (name and password)? Recommendation: yes, with a "Add a Wi-Fi network" form in the Wi-Fi section. Without it, a user needs SSH or a keyboard to add a network.
+- [x] Q6: In client mode, the Pi connects to the Wi-Fi networks that it already knows (NetworkManager connections, for example from Raspberry Pi Imager). Must the web page also let a user add a new network (name and password)? Recommendation: yes, with a "Add a Wi-Fi network" form in the Wi-Fi section. Without it, a user needs SSH or a keyboard to add a network.
 
 ### Decisions
 
@@ -198,14 +198,15 @@ These steps come from a review after phase 3, before the first Pi test.
 - Wi-Fi control -> the controller container controls the host NetworkManager through the system D-Bus socket with `nmcli`. `install.sh` adds a polkit rule that lets the briefcase user control NetworkManager. The web app has no login, so any device on the hotspot can switch the mode. This is the same trust level as upload and delete.
 - Arm64 image check -> run the `Images` workflow on GitHub with QEMU, instead of a local build. The workflow also publishes the first images, so the Pi can download them.
 - Not now: a shutdown button, video thumbnails. They stay in future work.
+- Q6 add-network form -> yes. The user confirmed it. Without the form, a user needs SSH or a keyboard to add a network.
 
 ### Implementation Steps
 
-5.1. [ ] (bd: none) Fix the Pi set-up path: add `sudo apt install -y git` and the `BatchCodes` clone command to the README, add `video=HDMI-A-1:1920x1080@60D` to the `install.sh` kernel parameters so that the HDMI output is active if the monitor starts late, and add an "Updating" section (Ethernet on a Pi 4, or Wi-Fi client mode from step 5.4).
-5.2. [ ] (bd: none) Run the `Images` workflow for `linux/arm64` and `linux/amd64`, fix any build failure, and make the GHCR packages public. Tag `v0.1.0` and write the first release notes.
-5.3. [ ] (bd: none) Show the playback position in the web app status, and add a "Use current position as start" button for the current video. Add a "Pause" action for test play, so that a user can stop at the correct frame. Add tests.
-5.4. [ ] (bd: none) Implement the Wi-Fi mode switch: a `network.py` module that runs `nmcli` against the host D-Bus, the 60 s fallback timer, hotspot mode at boot, API endpoints and a Wi-Fi section in the web page with the current mode, network name and address (and the add-network form, if Q6 is yes). Mount the D-Bus socket in `compose.yml`, add `network-manager` to the controller image and add the polkit rule to `install.sh`. Use a fake `nmcli` in tests and in laptop mode.
-5.5. [ ] (bd: none) Small web app items: a friendly address `http://briefcase.lan` through the NetworkManager `dnsmasq-shared.d` configuration, the free SD card space in the video section, multi-file upload, and a note in the README about the Android "no internet" prompt.
+5.1. [ ] (bd: rickroll_briefcase-679.16) Fix the Pi set-up path: add `sudo apt install -y git` and the `BatchCodes` clone command to the README, add `video=HDMI-A-1:1920x1080@60D` to the `install.sh` kernel parameters so that the HDMI output is active if the monitor starts late, and add an "Updating" section (Ethernet on a Pi 4, or Wi-Fi client mode from step 5.4).
+5.2. [ ] (bd: rickroll_briefcase-679.17) Run the `Images` workflow for `linux/arm64` and `linux/amd64`, fix any build failure, and make the GHCR packages public. Tag `v0.1.0` and write the first release notes.
+5.3. [ ] (bd: rickroll_briefcase-679.18) Show the playback position in the web app status, and add a "Use current position as start" button for the current video. Add a "Pause" action for test play, so that a user can stop at the correct frame. Add tests.
+5.4. [ ] (bd: rickroll_briefcase-679.19) Implement the Wi-Fi mode switch: a `network.py` module that runs `nmcli` against the host D-Bus, the 60 s fallback timer, hotspot mode at boot, API endpoints and a Wi-Fi section in the web page with the current mode, network name and address and the add-network form. Mount the D-Bus socket in `compose.yml`, add `network-manager` to the controller image and add the polkit rule to `install.sh`. Use a fake `nmcli` in tests and in laptop mode.
+5.5. [ ] (bd: rickroll_briefcase-679.20) Small web app items: a friendly address `http://briefcase.lan` through the NetworkManager `dnsmasq-shared.d` configuration, the free SD card space in the video section, multi-file upload, and a note in the README about the Android "no internet" prompt.
 
 ## Phase 6: Future Work
 
@@ -228,3 +229,4 @@ Not started. Candidate items: an ESP32 power controller for a long standby time,
 - Step 3.2: the workflows were not run on GitHub, because the repository has no remote yet. The same checks pass locally in Docker: tests, `shellcheck`, `markdownlint-cli2`, `cspell` and `scripts/smoke_test.sh`.
 - Steps 2.2 and 3.4 stay open, because they need the real Pi 4 and the Kenowa monitor. `docs/software/player.md` has the test procedures and empty results tables. `scripts/pi_check.sh` prints the boot-to-ready time and the player properties.
 - After the push to `github.com/BatchCodes/rickroll_briefcase`, CI passed on GitHub. The action versions were updated to remove the Node.js 20 warnings. The newer markdownlint added rule MD060 (table alignment). Prettier fixed the table, and `.claude/skills/` is now excluded from markdownlint, because those files come from outside the project.
+- Step 5.1 added the "Never Gonna Give You Up" GIF at the top of the README (user request). The README links to the GIF on GIPHY. The repository does not contain the GIF file, because of the copyright rule.
