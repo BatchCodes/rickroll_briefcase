@@ -30,7 +30,7 @@ For development, the repository makes a generated test video with a visible time
 You need Docker with the Compose plugin.
 
 ```bash
-git clone https://github.com/<owner>/rickroll_briefcase.git
+git clone https://github.com/BatchCodes/rickroll_briefcase.git
 cd rickroll_briefcase
 ./scripts/write_env.sh
 ./tools/make_test_video.sh
@@ -44,7 +44,7 @@ Open <http://localhost:8080>. Use the "Lid" and "Arm" buttons to simulate the br
 You need a Raspberry Pi 4 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (64-bit). Build the hardware first. Refer to the [hardware guide](docs/hardware/parts.md).
 
 ```bash
-git clone https://github.com/<owner>/rickroll_briefcase.git
+git clone https://github.com/BatchCodes/rickroll_briefcase.git
 cd rickroll_briefcase
 sudo ./scripts/install.sh --country DE
 ```

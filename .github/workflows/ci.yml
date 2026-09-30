@@ -14,7 +14,7 @@ jobs:
     name: "Controller tests and lint"
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v4"
+      - uses: "actions/checkout@v7"
       - name: "Run ruff and pytest in Docker"
         run: "docker compose -f compose.test.yml run --rm --build test"
 
@@ -22,7 +22,7 @@ jobs:
     name: "Shell scripts"
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v4"
+      - uses: "actions/checkout@v7"
       - name: "Run shellcheck"
         run: >-
           docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:stable
@@ -32,11 +32,11 @@ jobs:
     name: "Markdown lint and spelling"
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v4"
-      - uses: "DavidAnson/markdownlint-cli2-action@v19"
+      - uses: "actions/checkout@v7"
+      - uses: "DavidAnson/markdownlint-cli2-action@v24"
         with:
           globs: "**/*.md"
-      - uses: "streetsidesoftware/cspell-action@v6"
+      - uses: "streetsidesoftware/cspell-action@v9"
         with:
           files: "**/*.md"
           incremental_files_only: false
@@ -47,7 +47,7 @@ jobs:
     env:
       BRIEFCASE_PLAYER_OUTPUT: "null"
     steps:
-      - uses: "actions/checkout@v4"
+      - uses: "actions/checkout@v7"
       - name: "Write the environment file"
         run: "./scripts/write_env.sh"
       - name: "Make a test video"

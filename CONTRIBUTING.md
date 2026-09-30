@@ -11,7 +11,7 @@ You need only Docker with the Compose plugin. You do not need a Raspberry Pi, Py
 1. Clone the repository.
 
    ```bash
-   git clone https://github.com/<owner>/rickroll_briefcase.git
+   git clone https://github.com/BatchCodes/rickroll_briefcase.git
    cd rickroll_briefcase
    ```
 
