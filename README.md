@@ -59,7 +59,17 @@ To install the complete source and build the images on the Pi instead, use `full
 curl -fsSL https://raw.githubusercontent.com/BatchCodes/rickroll_briefcase/main/full_install.sh | bash -s -- --country DE
 ```
 
-For all options, run `~/rickroll_briefcase/scripts/setup.sh --help`.
+### Install a Release or a Commit
+
+The commands above install the newest commit on `main`. To install a release or a pre-release, use the installer that is attached to it. It installs the files and the images of that release:
+
+```bash
+curl -fsSL https://github.com/BatchCodes/rickroll_briefcase/releases/download/v0.1.0/install.sh | bash -s -- --country DE
+```
+
+Use `full_install.sh` from the same release for a full install. To install one commit, add `--ref` with the commit hash, for example `--ref 3f2a1c9`. A commit on `main` uses the images of that commit.
+
+For all options, run `curl -fsSL https://raw.githubusercontent.com/BatchCodes/rickroll_briefcase/main/install.sh | bash -s -- --help` and `~/rickroll_briefcase/scripts/setup.sh --help`.
 
 Then do these steps:
 

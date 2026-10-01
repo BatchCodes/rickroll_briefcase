@@ -76,7 +76,12 @@ Maintainers make releases.
 
 1. Update the `version` in [controller/pyproject.toml](controller/pyproject.toml).
 2. Commit the change with the message `chore: release vX.Y.Z`.
-3. Make a tag, for example `git tag v1.2.0`.
+3. Make a tag, for example `git tag v1.2.0`. For a pre-release, add a suffix, for example `v1.2.0-rc.1`.
 4. Push the tag with `git push origin v1.2.0`.
 
-CI then builds the `linux/arm64` and `linux/amd64` images and pushes them to GHCR with the tags `X.Y.Z` and `X.Y`. Each push to `main` also builds the images and pushes them with the tag `latest`, which the Pi downloads by default. To use a release on the Pi, set `BRIEFCASE_VERSION=X.Y.Z` in `.env`. Write the release notes on the GitHub release page. List the new features, the fixes and any change that needs user action.
+Two workflows then run:
+
+- `Images` builds the `linux/arm64` and `linux/amd64` images and pushes them to GHCR with the tag `X.Y.Z` (and `X.Y` for a full release).
+- `Release` makes the GitHub release. A tag with a suffix makes a pre-release. [scripts/make_release_assets.sh](scripts/make_release_assets.sh) makes the attached files: the runtime archive, the full archive, an `install.sh` and a `full_install.sh` that install this release, and `SHA256SUMS`.
+
+Each push to `main` also builds the images and pushes them with the tags `latest` and `sha-<commit>`. Edit the generated release notes on the GitHub release page. List the new features, the fixes and any change that needs user action.
