@@ -17,6 +17,7 @@ from briefcase.inputs import create_inputs
 from briefcase.library import Library
 from briefcase.mpv import MpvClient, MpvPlayer
 from briefcase.network import create_network
+from briefcase.power import create_power
 from briefcase.settings import SettingsStore
 from briefcase.web import create_app
 
@@ -33,6 +34,7 @@ def build_app(config: AppConfig) -> FastAPI:
         inputs, player, create_display(config), library, store
     )
     network = create_network(config)
+    power = create_power(config, inputs, controller)
 
     @contextlib.asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -40,16 +42,25 @@ def build_app(config: AppConfig) -> FastAPI:
         await controller.start()
         client.start()
         network.start()
+        await power.start()
         LOGGER.info("The briefcase controller is running")
         try:
             yield
         finally:
+            await power.close()
             await network.close()
             await client.close()
             inputs.close()
 
     return create_app(
-        config, controller, library, store, inputs, network=network, lifespan=lifespan
+        config,
+        controller,
+        library,
+        store,
+        inputs,
+        network=network,
+        power=power,
+        lifespan=lifespan,
     )
 
 

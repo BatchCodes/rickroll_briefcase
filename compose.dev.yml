@@ -31,3 +31,4 @@ services:
     environment:
       BRIEFCASE_INPUT_BACKEND: simulated
       BRIEFCASE_NETWORK_BACKEND: simulated
+      BRIEFCASE_POWER_SWITCH_PIN: "${BRIEFCASE_POWER_SWITCH_PIN:-3}"

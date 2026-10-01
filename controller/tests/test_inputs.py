@@ -72,3 +72,19 @@ def test_gpio_notifies_listener(factory):
 
     assert events[-1] == InputState(lid_open=True, armed=True)
     inputs.close()
+
+
+def test_gpio_power_switch(factory):
+    inputs = make_gpio(factory, power_switch_pin=3)
+    power = factory.pin(3)
+    power.drive_low()
+    assert inputs.read().power_on is True
+    power.drive_high()
+    assert inputs.read().power_on is False
+    inputs.close()
+
+
+def test_gpio_without_power_switch(factory):
+    inputs = make_gpio(factory)
+    assert inputs.read().power_on is None
+    inputs.close()

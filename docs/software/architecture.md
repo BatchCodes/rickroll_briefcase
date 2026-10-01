@@ -29,6 +29,7 @@ The `controller` container runs one Python process with these parts:
 | `library.py`    | the video files: list, upload, rename, delete and format check                |
 | `settings.py`   | the playback settings, their defaults and the atomic settings file            |
 | `display.py`    | optional monitor power commands                                               |
+| `power.py`      | the power switch: a clean shutdown when the switch goes off                   |
 | `network.py`    | the Wi-Fi mode (hotspot or client) with the automatic fallback to the hotspot |
 | `web.py`        | the FastAPI JSON API and the phone web page                                   |
 
@@ -64,6 +65,15 @@ These rules prevent a lock-out:
 - The web app changes the mode 1.5 s after the request, so that the phone receives the reply first.
 
 In client mode, the web app is at `http://<hostname>.local` on the home network.
+
+## Power Switch
+
+The optional power switch connects GPIO 3 to ground when it is on. When it goes off and stays off for 2 s, the controller stops the video and asks the host `systemd-logind` to power off, through the system D-Bus. Switching on again within the 2 s cancels the shutdown.
+
+- Without the power latch hardware, the Pi halts. A halted Pi wakes when GPIO 3 goes low, so switching on again boots the Pi.
+- With the power latch, the `gpio-poweroff` overlay signals the latch on GPIO 26 at the end of the shutdown. The latch then disconnects the power of the Pi and the monitor.
+
+In laptop mode, the power switch is simulated. A power-off only writes a log message.
 
 ## Recovery
 

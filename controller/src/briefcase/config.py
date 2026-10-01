@@ -32,6 +32,18 @@ def _env_bool(name: str, default: bool) -> bool:
     raise ValueError(f"{ENV_PREFIX}{name} must be true or false, not {value!r}")
 
 
+def _env_optional_int(name: str) -> int | None:
+    value = _env(name, "").strip()
+    if not value:
+        return None
+    try:
+        return int(value)
+    except ValueError as error:
+        raise ValueError(
+            f"{ENV_PREFIX}{name} must be a GPIO number or empty, not {value!r}"
+        ) from error
+
+
 @dataclass(frozen=True)
 class AppConfig:
     videos_dir: Path = Path("/data/videos")
@@ -53,6 +65,9 @@ class AppConfig:
     hotspot_connection: str = "briefcase-hotspot"
     wifi_interface: str = "wlan0"
     network_fallback_sec: float = 60.0
+    power_switch_pin: int | None = None
+    power_on_when_low: bool = True
+    power_off_delay_sec: float = 2.0
 
     @property
     def settings_path(self) -> Path:
@@ -98,4 +113,7 @@ class AppConfig:
             hotspot_connection=_env("HOTSPOT_CONNECTION", "briefcase-hotspot"),
             wifi_interface=_env("WIFI_INTERFACE", "wlan0"),
             network_fallback_sec=float(_env("NETWORK_FALLBACK_SEC", "60")),
+            power_switch_pin=_env_optional_int("POWER_SWITCH_PIN"),
+            power_on_when_low=_env_bool("POWER_ON_WHEN_LOW", True),
+            power_off_delay_sec=float(_env("POWER_OFF_DELAY_SEC", "2")),
         )

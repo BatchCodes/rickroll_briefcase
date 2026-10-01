@@ -11,6 +11,7 @@ const STATE_LABELS = {
   playing: "Playing",
   finished: "Finished",
   error: "Error, retrying",
+  shutting_down: "Shutting down",
 };
 
 const WIFI_MODE_LABELS = {
@@ -19,6 +20,13 @@ const WIFI_MODE_LABELS = {
   switching: "Switching…",
   offline: "Offline",
   unavailable: "Unavailable",
+};
+
+const POWER_LABELS = {
+  on: "On",
+  off_pending: "Off (waiting)",
+  shutting_down: "Shutting down",
+  simulated_off: "Off (simulated)",
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -92,6 +100,26 @@ function renderStatus(status) {
     button.disabled = !playing;
   }
   showError(status.error);
+
+  const power = status.power || { state: "no_switch" };
+  const hasPower = power.state !== "no_switch";
+  $("#power-fact").hidden = !hasPower;
+  $("#power-state").textContent = POWER_LABELS[power.state] || power.state;
+  const powerMessage = $("#power-message");
+  let powerText = "";
+  if (power.state === "off_pending") {
+    powerText = `The power switch is off. The briefcase shuts down in ${power.delay_sec} s.`;
+  } else if (power.state === "shutting_down") {
+    powerText = "The briefcase is shutting down.";
+  } else if (power.state === "simulated_off") {
+    powerText = "Laptop mode: the Pi would be off now. Turn the power switch on again.";
+  } else if (power.error) {
+    powerText = `The shutdown failed: ${power.error}`;
+  }
+  powerMessage.hidden = !powerText;
+  powerMessage.textContent = powerText;
+  $("#sim-power").hidden = !hasPower;
+  $("#sim-power").textContent = power.switch_on === false ? "Power on" : "Power off";
 
   $("#simulate").hidden = !status.simulated_inputs;
   $("#sim-lid").textContent = status.lid_open ? "Close lid" : "Open lid";
@@ -358,6 +386,15 @@ function bindEvents() {
   $("#sim-lid").addEventListener("click", () =>
     run(async () =>
       renderStatus(await api("POST", "/api/simulate", { lid_open: !lastStatus.lid_open })),
+    ),
+  );
+  $("#sim-power").addEventListener("click", () =>
+    run(async () =>
+      renderStatus(
+        await api("POST", "/api/simulate", {
+          power_on: lastStatus.power.switch_on === false,
+        }),
+      ),
     ),
   );
   $("#sim-arm").addEventListener("click", () =>

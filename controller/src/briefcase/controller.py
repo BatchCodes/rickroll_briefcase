@@ -48,6 +48,7 @@ class State(StrEnum):
     PLAYING = "playing"
     FINISHED = "finished"
     ERROR = "error"
+    SHUTTING_DOWN = "shutting_down"
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,7 @@ class Status:
     armed: bool
     simulated_inputs: bool
     player_connected: bool
+    power_switch_on: bool | None
     current_video: str | None
     start_sec: float | None
     test_play: bool
@@ -94,6 +96,7 @@ class BriefcaseController:
         self._prepared = False
         self._test_play = False
         self._paused = False
+        self._shutting_down = False
         self._error: str | None = None
         self._retry: asyncio.TimerHandle | None = None
 
@@ -109,6 +112,7 @@ class BriefcaseController:
             armed=inputs.armed,
             simulated_inputs=self._inputs.simulated,
             player_connected=self._player.connected,
+            power_switch_on=inputs.power_on,
             current_video=self._current,
             start_sec=self._start_sec,
             test_play=self._test_play,
@@ -238,6 +242,29 @@ class BriefcaseController:
         async with self._lock:
             await handler()
 
+    async def prepare_shutdown(self) -> None:
+        """Stop the video before the Pi powers off. Ignore later events."""
+
+        async def handler() -> None:
+            if self._state is State.PLAYING and self._player.connected:
+                await self._stop_playback()
+            await self._display.off()
+            self._shutting_down = True
+            self._test_play = False
+            self._state = State.SHUTTING_DOWN
+            LOGGER.info("Ready for the power-off")
+
+        await self._run(handler)
+
+    async def resume_after_shutdown(self) -> None:
+        """Start again after a simulated or failed power-off."""
+
+        async def handler() -> None:
+            self._shutting_down = False
+            await self._refresh()
+
+        await self._run(handler)
+
     async def _on_player_connection(self, connected: bool) -> None:
         async def handler() -> None:
             self._prepared = False
@@ -291,6 +318,9 @@ class BriefcaseController:
         return (inputs.armed and inputs.lid_open) or self._test_play
 
     async def _apply(self) -> None:
+        if self._shutting_down:
+            self._state = State.SHUTTING_DOWN
+            return
         inputs = self._inputs.read()
         if not self._player.connected:
             self._state = State.PLAYER_OFFLINE

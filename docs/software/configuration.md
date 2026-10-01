@@ -38,6 +38,8 @@ docker compose up -d
 | `BRIEFCASE_DISPLAY_OFF_COMMAND`  | empty         | the shell command that turns the monitor off, in the controller container                                               |
 | `BRIEFCASE_NETWORK_BACKEND`      | `nmcli`       | `nmcli` (the web app controls the Pi Wi-Fi), `simulated` (laptop mode) or `none` (no Wi-Fi section)                     |
 | `BRIEFCASE_NETWORK_FALLBACK_SEC` | `60`          | in client mode, the time without a connection before the hotspot starts again                                           |
+| `BRIEFCASE_POWER_SWITCH_PIN`     | empty         | the BCM GPIO number of the power switch, normally `3`. Empty means "no power switch". `setup.sh --power-switch` sets it |
+| `BRIEFCASE_POWER_OFF_DELAY_SEC`  | `2`           | the time that the power switch must stay off before the shutdown starts                                                 |
 | `BRIEFCASE_LOG_LEVEL`            | `INFO`        | `DEBUG`, `INFO`, `WARNING` or `ERROR`                                                                                   |
 
 Both switches connect their GPIO pin to ground when they are closed. The controller uses the internal pull-up resistors. With the default wiring, the lid is closed when the lid pin is low, and the briefcase is armed when the arm pin is low. To invert a switch, set `BRIEFCASE_LID_CLOSED_WHEN_LOW=false` or `BRIEFCASE_ARMED_WHEN_LOW=false` in `.env`.

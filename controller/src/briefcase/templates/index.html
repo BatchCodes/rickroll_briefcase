@@ -25,7 +25,9 @@
           <div><dt>Lid</dt><dd id="lid-state">–</dd></div>
           <div><dt>Arm switch</dt><dd id="arm-state">–</dd></div>
           <div><dt>Player</dt><dd id="player-state">–</dd></div>
+          <div id="power-fact" hidden><dt>Power switch</dt><dd id="power-state">–</dd></div>
         </dl>
+        <p id="power-message" class="error" hidden></p>
         <div class="position">
           <span id="position-text" class="position-text">--:-- / --:--</span>
           <progress id="position-bar" max="1" value="0"></progress>
@@ -55,6 +57,7 @@
           <div class="buttons">
             <button id="sim-lid" type="button" class="secondary">Open lid</button>
             <button id="sim-arm" type="button" class="secondary">Disarm</button>
+            <button id="sim-power" type="button" class="secondary" hidden>Power off</button>
           </div>
         </div>
       </section>

@@ -22,6 +22,8 @@ LOGGER = logging.getLogger(__name__)
 class InputState:
     lid_open: bool
     armed: bool
+    # None when the briefcase has no power switch.
+    power_on: bool | None = None
 
 
 Listener = Callable[[InputState], None]
@@ -61,20 +63,37 @@ class SimulatedInputs(_ListenerMixin):
 
     simulated = True
 
-    def __init__(self, lid_open: bool = False, armed: bool = True) -> None:
+    def __init__(
+        self,
+        lid_open: bool = False,
+        armed: bool = True,
+        power_switch: bool = False,
+    ) -> None:
         super().__init__()
         self._lock = threading.Lock()
-        self._state = InputState(lid_open=lid_open, armed=armed)
+        self._state = InputState(
+            lid_open=lid_open, armed=armed, power_on=True if power_switch else None
+        )
 
     def read(self) -> InputState:
         with self._lock:
             return self._state
 
-    def set(self, *, lid_open: bool | None = None, armed: bool | None = None) -> None:
+    def set(
+        self,
+        *,
+        lid_open: bool | None = None,
+        armed: bool | None = None,
+        power_on: bool | None = None,
+    ) -> None:
         with self._lock:
+            current_power = self._state.power_on
+            if power_on is not None and current_power is not None:
+                current_power = power_on
             state = InputState(
                 lid_open=self._state.lid_open if lid_open is None else lid_open,
                 armed=self._state.armed if armed is None else armed,
+                power_on=current_power,
             )
             changed = state != self._state
             self._state = state
@@ -108,9 +127,21 @@ class GpioInputs(_ListenerMixin):
         self._arm = Button(
             config.arm_pin, pull_up=True, bounce_time=bounce, pin_factory=pin_factory
         )
+        self._power = None
+        self._power_on_when_low = config.power_on_when_low
+        if config.power_switch_pin is not None:
+            self._power = Button(
+                config.power_switch_pin,
+                pull_up=True,
+                bounce_time=bounce,
+                pin_factory=pin_factory,
+            )
         self._last: InputState | None = None
         self._state_lock = threading.Lock()
-        for button in (self._lid, self._arm):
+        buttons = [self._lid, self._arm]
+        if self._power is not None:
+            buttons.append(self._power)
+        for button in buttons:
             button.when_pressed = self._on_change
             button.when_released = self._on_change
         LOGGER.info(
@@ -122,7 +153,11 @@ class GpioInputs(_ListenerMixin):
         arm_low = self._arm.is_pressed
         lid_closed = lid_low if self._lid_closed_when_low else not lid_low
         armed = arm_low if self._armed_when_low else not arm_low
-        return InputState(lid_open=not lid_closed, armed=armed)
+        power_on = None
+        if self._power is not None:
+            power_low = self._power.is_pressed
+            power_on = power_low if self._power_on_when_low else not power_low
+        return InputState(lid_open=not lid_closed, armed=armed, power_on=power_on)
 
     def _on_change(self) -> None:
         state = self.read()
@@ -135,10 +170,12 @@ class GpioInputs(_ListenerMixin):
     def close(self) -> None:
         self._lid.close()
         self._arm.close()
+        if self._power is not None:
+            self._power.close()
 
 
 def create_inputs(config: AppConfig) -> Inputs:
     if config.input_backend == "simulated":
         LOGGER.info("Using simulated lid and arm inputs")
-        return SimulatedInputs()
+        return SimulatedInputs(power_switch=config.power_switch_pin is not None)
     return GpioInputs(config)

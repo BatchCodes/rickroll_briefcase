@@ -170,3 +170,10 @@ def test_storage_and_full_disk(setup, monkeypatch):
     )
     response = client.put("/api/videos/full.mp4", content=b"x" * 10)
     assert response.status_code == 507
+
+
+def test_status_reports_no_power_switch(setup):
+    client, *_ = setup
+    status = client.get("/api/status").json()
+    assert status["power"]["state"] == "no_switch"
+    assert status["power_switch_on"] is None

@@ -19,6 +19,7 @@ from briefcase.controller import BriefcaseController, ControllerError
 from briefcase.inputs import Inputs, SimulatedInputs
 from briefcase.library import Library, LibraryError
 from briefcase.network import Mode, NetworkController, NetworkError
+from briefcase.power import PowerManager
 from briefcase.settings import (
     SelectionMode,
     SettingsStore,
@@ -70,6 +71,7 @@ class AddNetworkRequest(BaseModel):
 class SimulateRequest(BaseModel):
     lid_open: bool | None = None
     armed: bool | None = None
+    power_on: bool | None = None
 
 
 def _bad_request(error: Exception) -> HTTPException:
@@ -86,6 +88,7 @@ def create_app(
     store: SettingsStore,
     inputs: Inputs,
     network: NetworkController | None = None,
+    power: PowerManager | None = None,
     lifespan: Any = None,
 ) -> FastAPI:
     network = network or NetworkController(None, 60)
@@ -130,7 +133,12 @@ def create_app(
 
     @app.get("/api/status")
     async def status() -> dict[str, Any]:
-        return (await controller.status_with_position()).to_dict()
+        return await full_status()
+
+    async def full_status() -> dict[str, Any]:
+        data = (await controller.status_with_position()).to_dict()
+        data["power"] = power.status() if power else {"state": "no_switch"}
+        return data
 
     @app.get("/api/settings")
     async def get_settings() -> dict[str, Any]:
@@ -303,8 +311,10 @@ def create_app(
             raise HTTPException(
                 status_code=404, detail="The inputs are not simulated on this system."
             )
-        inputs.set(lid_open=body.lid_open, armed=body.armed)
+        inputs.set(lid_open=body.lid_open, armed=body.armed, power_on=body.power_on)
         await controller.inputs_changed()
-        return controller.status().to_dict()
+        if power:
+            await power.inputs_changed()
+        return await full_status()
 
     return app
