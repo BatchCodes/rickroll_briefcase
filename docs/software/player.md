@@ -111,6 +111,29 @@ This test checks the zero-touch rule: the briefcase must operate with no keyboar
 | 20 arm cycles without a fault         |        |
 | Settings kept after a power loss      |        |
 
+## Test 5: Power Switch Without the Latch
+
+This test checks the power switch before the MOSFET latch hardware is fitted. Connect a toggle switch between GPIO 3 (pin 5) and ground (pin 6). "On" closes the switch.
+
+1. Run the installer again with the power switch option:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/BatchCodes/rickroll_briefcase/main/install.sh | bash -s -- --power-switch
+   ```
+
+2. Reboot the Pi with the switch on.
+3. Turn the switch off. After 2 s, the video must stop and the Pi must shut down.
+4. Turn the switch on again within 2 s of a switch-off. The Pi must not shut down.
+5. With the Pi halted, turn the switch on. The Pi must boot, and the web app must show "Ready".
+6. Repeat steps 3 and 5 20 times.
+
+| Item                                 | Result |
+| ------------------------------------ | ------ |
+| Time from "on" to "Ready" (s)        |        |
+| Time from "off" to the Pi halted (s) |        |
+| Power draw of the halted Pi (W)      |        |
+| 20 power cycles without a fault      |        |
+
 ## Results Log
 
 | Date | Board | Tester | Notes |

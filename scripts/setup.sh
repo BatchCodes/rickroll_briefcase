@@ -8,6 +8,8 @@ BOOT_DIR="/boot/firmware"
 CONFIG_TXT="${BOOT_DIR}/config.txt"
 CMDLINE_TXT="${BOOT_DIR}/cmdline.txt"
 SERVICE_NAME="rickroll-briefcase"
+POWER_SWITCH_PIN=3
+POWER_LATCH_PIN=26
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 HOTSPOT_CONNECTION="briefcase-hotspot"
 POLKIT_RULE="/etc/polkit-1/rules.d/50-rickroll-briefcase.rules"
@@ -41,6 +43,13 @@ The script is safe to run again.
   --no-hotspot         do not make the Wi-Fi access point
   --power-save         turn off Bluetooth and the board LEDs to decrease power
   --keep-console       keep the login prompt on the HDMI screen
+  --power-switch       use a power switch on GPIO 3 (pin 5) to ground: "off"
+                       shuts the Pi down cleanly, "on" wakes the halted Pi.
+                       Use this before the power latch hardware is fitted
+  --power-latch        as --power-switch, and the Pi also signals the power
+                       latch on GPIO 26 (pin 37) at the end of a shutdown, so
+                       the latch can disconnect the power
+  --no-power-switch    remove the power switch configuration
   --image-tag TAG      the image version to download, for example 0.1.0,
                        sha-3f2a1c9 or latest (default: latest)
   --build              build the images on the Pi instead of downloading them
@@ -61,6 +70,7 @@ parse_args() {
   KEEP_CONSOLE=0
   BUILD_LOCALLY=0
   IMAGE_TAG="latest"
+  POWER_MODE=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -102,6 +112,18 @@ parse_args() {
         ;;
       --build)
         BUILD_LOCALLY=1
+        shift
+        ;;
+      --power-switch)
+        POWER_MODE="switch"
+        shift
+        ;;
+      --power-latch)
+        POWER_MODE="latch"
+        shift
+        ;;
+      --no-power-switch)
+        POWER_MODE="none"
         shift
         ;;
       --image-tag)
@@ -204,6 +226,18 @@ add_user_to_groups() {
   done
 }
 
+resolve_power_mode() {
+  local stored_mode=""
+
+  if [[ -n "${POWER_MODE}" ]]; then
+    return 0
+  fi
+  if [[ -f "${ENV_FILE}" ]]; then
+    stored_mode="$(sed -n 's/^BRIEFCASE_POWER_MODE=//p' "${ENV_FILE}" | tail -n 1)"
+  fi
+  POWER_MODE="${stored_mode:-none}"
+}
+
 write_env() {
   log_step "Environment file"
   "${SCRIPT_DIR}/write_env.sh"
@@ -211,6 +245,12 @@ write_env() {
   set_env_value BRIEFCASE_PLAYER_OUTPUT drm
   set_env_value BRIEFCASE_HTTP_PORT 80
   set_env_value BRIEFCASE_PLAYER_EXTRA_ARGS "$(hdmi_audio_args)"
+  set_env_value BRIEFCASE_POWER_MODE "${POWER_MODE}"
+  if [[ "${POWER_MODE}" == "none" ]]; then
+    set_env_value BRIEFCASE_POWER_SWITCH_PIN ""
+  else
+    set_env_value BRIEFCASE_POWER_SWITCH_PIN "${POWER_SWITCH_PIN}"
+  fi
   choose_images
 }
 
@@ -296,6 +336,14 @@ dtparam=act_led_activelow=off
 dtparam=pwr_led_trigger=none
 dtparam=pwr_led_activelow=off"
   fi
+  if [[ "${POWER_MODE}" != "none" ]]; then
+    block+="
+dtparam=i2c_arm=off"
+  fi
+  if [[ "${POWER_MODE}" == "latch" ]]; then
+    block+="
+dtoverlay=gpio-poweroff,gpiopin=${POWER_LATCH_PIN}"
+  fi
   block+="
 ${CONFIG_END}"
 
@@ -372,20 +420,55 @@ configure_hotspot() {
   printf 'The access point starts at the next boot. Open http://%s or http://%s on it.\n' "${FRIENDLY_NAME}" "${HOTSPOT_ADDRESS}"
 }
 
-install_network_permission() {
-  log_step "Wi-Fi control from the web app"
+install_permissions() {
+  local power_rule=""
+
+  log_step "Permissions for the controller container"
+  if [[ "${POWER_MODE}" != "none" ]]; then
+    power_rule="
+  // Let the controller power off the Pi when the power switch goes off.
+  if ((action.id === \"org.freedesktop.login1.power-off\" ||
+       action.id === \"org.freedesktop.login1.power-off-multiple-sessions\") &&
+      subject.user === \"${SUDO_USER}\") {
+    return polkit.Result.YES;
+  }"
+  fi
   install -d -m 0755 "$(dirname -- "${POLKIT_RULE}")"
   cat >"${POLKIT_RULE}" <<RULE
-// Let the briefcase controller container change the Wi-Fi mode.
 polkit.addRule(function (action, subject) {
+  // Let the briefcase controller container change the Wi-Fi mode.
   if (action.id.indexOf("org.freedesktop.NetworkManager.") === 0 &&
       subject.user === "${SUDO_USER}") {
     return polkit.Result.YES;
-  }
+  }${power_rule}
 });
 RULE
   chmod 0644 "${POLKIT_RULE}"
   printf 'The user %s can now control NetworkManager.\n' "${SUDO_USER}"
+  if [[ "${POWER_MODE}" != "none" ]]; then
+    printf 'The user %s can now power off the Pi.\n' "${SUDO_USER}"
+  fi
+}
+
+check_wake_setting() {
+  local eeprom_config
+
+  if [[ "${POWER_MODE}" != "switch" ]]; then
+    return 0
+  fi
+  log_step "Wake on GPIO 3"
+  if ! command -v rpi-eeprom-config >/dev/null 2>&1; then
+    printf 'This board has no bootloader EEPROM (for example a Pi Zero 2 W). A halted Pi wakes on GPIO 3 by default.\n'
+    return 0
+  fi
+  eeprom_config="$(rpi-eeprom-config 2>/dev/null || true)"
+  if printf '%s\n' "${eeprom_config}" | grep -q '^WAKE_ON_GPIO=0'; then
+    printf 'warning: the bootloader setting WAKE_ON_GPIO=0 stops the power switch from waking the Pi. Run "sudo rpi-eeprom-config --edit" and set WAKE_ON_GPIO=1.\n' >&2
+  fi
+  if printf '%s\n' "${eeprom_config}" | grep -q '^POWER_OFF_ON_HALT=1'; then
+    printf 'warning: the bootloader setting POWER_OFF_ON_HALT=1 can stop the power switch from waking the Pi. Run "sudo rpi-eeprom-config --edit" and set POWER_OFF_ON_HALT=0.\n' >&2
+  fi
+  printf 'The power switch wakes the halted Pi on GPIO 3 (pin 5).\n'
 }
 
 install_service() {
@@ -437,6 +520,7 @@ SUMMARY
 main() {
   parse_args "$@"
   require_system
+  resolve_power_mode
   read_password
   check_password
   install_docker
@@ -445,7 +529,8 @@ main() {
   configure_boot
   configure_console
   configure_hotspot
-  install_network_permission
+  install_permissions
+  check_wake_setting
   install_service
   start_containers
   print_summary

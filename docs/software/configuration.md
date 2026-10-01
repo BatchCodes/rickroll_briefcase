@@ -13,34 +13,35 @@ The briefcase has two types of configuration:
 docker compose up -d
 ```
 
-| Variable                         | Default       | Description                                                                                                             |
-| -------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `BRIEFCASE_UID`                  | `1000`        | the user ID that the containers use                                                                                     |
-| `BRIEFCASE_GID`                  | `1000`        | the group ID that the containers use                                                                                    |
-| `VIDEO_GID`                      | `44`          | the host `video` group, for `/dev/dri/card*`                                                                            |
-| `RENDER_GID`                     | `105`         | the host `render` group, for `/dev/dri/renderD*`                                                                        |
-| `AUDIO_GID`                      | `29`          | the host `audio` group, for `/dev/snd`                                                                                  |
-| `GPIO_GID`                       | `993`         | the host `gpio` group, for `/dev/gpiochip0`                                                                             |
-| `COMPOSE_FILE`                   | `compose.yml` | the Compose files. `scripts/setup.sh` adds `compose.build.yml` when the Pi builds the images itself                     |
-| `BRIEFCASE_IMAGE_OWNER`          | `batchcodes`  | the GitHub owner of the GHCR images, in lower case. `scripts/setup.sh` gets it from the git remote, if there is one     |
-| `BRIEFCASE_VERSION`              | `latest`      | the image tag, for example `0.1.0`, `sha-3f2a1c9` or `latest`. The installer sets it to match the release or the commit |
-| `BRIEFCASE_DATA_DIR`             | `./data`      | the directory for `videos/` and `config/`                                                                               |
-| `BRIEFCASE_HTTP_PORT`            | `8080`        | the web app port on the host                                                                                            |
-| `BRIEFCASE_INPUT_BACKEND`        | `gpio`        | `gpio` on a Pi, `simulated` on a laptop                                                                                 |
-| `BRIEFCASE_LID_PIN`              | `17`          | the BCM GPIO number of the reed switch                                                                                  |
-| `BRIEFCASE_ARM_PIN`              | `27`          | the BCM GPIO number of the arm switch                                                                                   |
-| `BRIEFCASE_LID_CLOSED_WHEN_LOW`  | `true`        | `true` if a low lid pin means "lid closed"                                                                              |
-| `BRIEFCASE_ARMED_WHEN_LOW`       | `true`        | `true` if a low arm pin means "armed"                                                                                   |
-| `BRIEFCASE_PLAYER_OUTPUT`        | `drm`         | `drm` (full screen on HDMI, no desktop), `window` (a desktop window) or `null` (no picture or sound)                    |
-| `BRIEFCASE_PLAYER_EXTRA_ARGS`    | empty         | more `mpv` options, for example `--audio-device=alsa/hdmi:CARD=vc4hdmi0`                                                |
-| `BRIEFCASE_DISPLAY_BACKEND`      | `none`        | `none` (the monitor stays on) or `command` (run the commands below)                                                     |
-| `BRIEFCASE_DISPLAY_ON_COMMAND`   | empty         | the shell command that turns the monitor on, in the controller container                                                |
-| `BRIEFCASE_DISPLAY_OFF_COMMAND`  | empty         | the shell command that turns the monitor off, in the controller container                                               |
-| `BRIEFCASE_NETWORK_BACKEND`      | `nmcli`       | `nmcli` (the web app controls the Pi Wi-Fi), `simulated` (laptop mode) or `none` (no Wi-Fi section)                     |
-| `BRIEFCASE_NETWORK_FALLBACK_SEC` | `60`          | in client mode, the time without a connection before the hotspot starts again                                           |
-| `BRIEFCASE_POWER_SWITCH_PIN`     | empty         | the BCM GPIO number of the power switch, normally `3`. Empty means "no power switch". `setup.sh --power-switch` sets it |
-| `BRIEFCASE_POWER_OFF_DELAY_SEC`  | `2`           | the time that the power switch must stay off before the shutdown starts                                                 |
-| `BRIEFCASE_LOG_LEVEL`            | `INFO`        | `DEBUG`, `INFO`, `WARNING` or `ERROR`                                                                                   |
+| Variable                         | Default       | Description                                                                                                                                                                  |
+| -------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BRIEFCASE_UID`                  | `1000`        | the user ID that the containers use                                                                                                                                          |
+| `BRIEFCASE_GID`                  | `1000`        | the group ID that the containers use                                                                                                                                         |
+| `VIDEO_GID`                      | `44`          | the host `video` group, for `/dev/dri/card*`                                                                                                                                 |
+| `RENDER_GID`                     | `105`         | the host `render` group, for `/dev/dri/renderD*`                                                                                                                             |
+| `AUDIO_GID`                      | `29`          | the host `audio` group, for `/dev/snd`                                                                                                                                       |
+| `GPIO_GID`                       | `993`         | the host `gpio` group, for `/dev/gpiochip0`                                                                                                                                  |
+| `COMPOSE_FILE`                   | `compose.yml` | the Compose files. `scripts/setup.sh` adds `compose.build.yml` when the Pi builds the images itself                                                                          |
+| `BRIEFCASE_IMAGE_OWNER`          | `batchcodes`  | the GitHub owner of the GHCR images, in lower case. `scripts/setup.sh` gets it from the git remote, if there is one                                                          |
+| `BRIEFCASE_VERSION`              | `latest`      | the image tag, for example `0.1.0`, `sha-3f2a1c9` or `latest`. The installer sets it to match the release or the commit                                                      |
+| `BRIEFCASE_DATA_DIR`             | `./data`      | the directory for `videos/` and `config/`                                                                                                                                    |
+| `BRIEFCASE_HTTP_PORT`            | `8080`        | the web app port on the host                                                                                                                                                 |
+| `BRIEFCASE_INPUT_BACKEND`        | `gpio`        | `gpio` on a Pi, `simulated` on a laptop                                                                                                                                      |
+| `BRIEFCASE_LID_PIN`              | `17`          | the BCM GPIO number of the reed switch                                                                                                                                       |
+| `BRIEFCASE_ARM_PIN`              | `27`          | the BCM GPIO number of the arm switch                                                                                                                                        |
+| `BRIEFCASE_LID_CLOSED_WHEN_LOW`  | `true`        | `true` if a low lid pin means "lid closed"                                                                                                                                   |
+| `BRIEFCASE_ARMED_WHEN_LOW`       | `true`        | `true` if a low arm pin means "armed"                                                                                                                                        |
+| `BRIEFCASE_PLAYER_OUTPUT`        | `drm`         | `drm` (full screen on HDMI, no desktop), `window` (a desktop window) or `null` (no picture or sound)                                                                         |
+| `BRIEFCASE_PLAYER_EXTRA_ARGS`    | empty         | more `mpv` options, for example `--audio-device=alsa/hdmi:CARD=vc4hdmi0`                                                                                                     |
+| `BRIEFCASE_DISPLAY_BACKEND`      | `none`        | `none` (the monitor stays on) or `command` (run the commands below)                                                                                                          |
+| `BRIEFCASE_DISPLAY_ON_COMMAND`   | empty         | the shell command that turns the monitor on, in the controller container                                                                                                     |
+| `BRIEFCASE_DISPLAY_OFF_COMMAND`  | empty         | the shell command that turns the monitor off, in the controller container                                                                                                    |
+| `BRIEFCASE_NETWORK_BACKEND`      | `nmcli`       | `nmcli` (the web app controls the Pi Wi-Fi), `simulated` (laptop mode) or `none` (no Wi-Fi section)                                                                          |
+| `BRIEFCASE_NETWORK_FALLBACK_SEC` | `60`          | in client mode, the time without a connection before the hotspot starts again                                                                                                |
+| `BRIEFCASE_POWER_MODE`           | `none`        | `none`, `switch` (halt and wake on GPIO 3) or `latch` (also signal the power latch on GPIO 26). `setup.sh --power-switch` or `--power-latch` sets it, and later runs keep it |
+| `BRIEFCASE_POWER_SWITCH_PIN`     | empty         | the BCM GPIO number of the power switch, normally `3`. Empty means "no power switch". `setup.sh --power-switch` sets it                                                      |
+| `BRIEFCASE_POWER_OFF_DELAY_SEC`  | `2`           | the time that the power switch must stay off before the shutdown starts                                                                                                      |
+| `BRIEFCASE_LOG_LEVEL`            | `INFO`        | `DEBUG`, `INFO`, `WARNING` or `ERROR`                                                                                                                                        |
 
 Both switches connect their GPIO pin to ground when they are closed. The controller uses the internal pull-up resistors. With the default wiring, the lid is closed when the lid pin is low, and the briefcase is armed when the arm pin is low. To invert a switch, set `BRIEFCASE_LID_CLOSED_WHEN_LOW=false` or `BRIEFCASE_ARMED_WHEN_LOW=false` in `.env`.
 
