@@ -48,7 +48,7 @@ docker compose -f compose.test.yml run --rm test
 Run the shell script check:
 
 ```bash
-docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:stable scripts/*.sh tools/*.sh player/*.sh
+docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:stable *.sh scripts/*.sh tools/*.sh player/*.sh
 ```
 
 CI runs the same checks on each pull request.

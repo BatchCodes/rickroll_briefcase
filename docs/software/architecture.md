@@ -55,7 +55,7 @@ All events (switch changes, player events and web requests) go through one lock,
 
 ## Wi-Fi Mode
 
-The Pi is normally a Wi-Fi access point. The web app can change it to a client of a known Wi-Fi network, for example to update the software. The controller runs `nmcli` in its container. `nmcli` talks to the host NetworkManager through the system D-Bus socket, which `compose.yml` mounts. A polkit rule from `install.sh` gives the briefcase user this permission.
+The Pi is normally a Wi-Fi access point. The web app can change it to a client of a known Wi-Fi network, for example to update the software. The controller runs `nmcli` in its container. `nmcli` talks to the host NetworkManager through the system D-Bus socket, which `compose.yml` mounts. A polkit rule from `scripts/setup.sh` gives the briefcase user this permission.
 
 These rules prevent a lock-out:
 

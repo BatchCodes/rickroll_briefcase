@@ -225,6 +225,10 @@ choose_images() {
   local remote_owner
 
   if [[ "${BUILD_LOCALLY}" -eq 1 ]]; then
+    if [[ ! -f "${REPO_DIR}/controller/Dockerfile" ]] || [[ ! -f "${REPO_DIR}/compose.build.yml" ]]; then
+      printf 'error: --build needs the complete source, but this is a normal install. Use full_install.sh instead.\n' >&2
+      exit 1
+    fi
     set_env_value COMPOSE_FILE "${REPO_DIR}/compose.yml:${REPO_DIR}/compose.build.yml"
     printf 'The Pi builds the images itself.\n'
     return 0

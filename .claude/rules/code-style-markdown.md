@@ -13,7 +13,7 @@ paths:
 - Include exactly one H1 per file. Match the H1 to the document or section title. Write a heading that is specific to its content, not generic. For example, write "Reed Switch Wiring", not "Documentation about the Switch." Match a heading's naming pattern to its sibling documents.
 - Use Title Case for H1 and H2 headings. You may use sentence-style phrasing for lower-level headings.
 - Keep a term's spelling, hyphenation, and capitalization the same everywhere in one document. Examples: `GPIO`, "reed switch", "Pi Zero 2 W". When two names refer to the same thing, pick one name. Use that name everywhere in the document.
-- Wrap file paths, commands, package names, identifiers, and config values in backticks. Do not use bold text or plain text for these. Turn a bare filename or script reference into a markdown link. Do not leave it as plain text. Example: `[install.sh](scripts/install.sh)`.
+- Wrap file paths, commands, package names, identifiers, and config values in backticks. Do not use bold text or plain text for these. Turn a bare filename or script reference into a markdown link. Do not leave it as plain text. Example: `[setup.sh](scripts/setup.sh)`.
 - Reserve bold text for a key phrase or a warning inside a sentence. Do not use bold text to label paths or commands.
 - Use `-` for all bullet lists. Never use `*`.
 - Tag each fenced code block with a language when you know it, for example ` ```bash ` or ` ```yaml `. This matters most when a reader needs to copy the command straight into a terminal. Show the actual runnable command in the fenced block. Prefix the command with its interpreter. Do not describe the command only in prose.

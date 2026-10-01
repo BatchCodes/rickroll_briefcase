@@ -48,12 +48,18 @@ You need a Raspberry Pi 4 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (
 Run this command on the Pi as your normal user, for example over SSH:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BatchCodes/rickroll_briefcase/main/scripts/bootstrap.sh | bash -s -- --country DE
+curl -fsSL https://raw.githubusercontent.com/BatchCodes/rickroll_briefcase/main/install.sh | bash -s -- --country DE
 ```
 
-The command downloads the repository to `~/rickroll_briefcase` as an archive. It needs no git and no GitHub login. Then it runs the installer with `sudo`. The installer asks for a Wi-Fi password. It installs Docker, sets up the `RICKROLL-BRIEFCASE` access point, downloads the container images and starts the briefcase at each boot.
+Use your own Wi-Fi country code instead of `DE`. The command downloads the files that the Pi needs to `~/rickroll_briefcase`. It needs no git and no GitHub login. Then it runs `scripts/setup.sh` with `sudo`. The setup asks for a Wi-Fi password. It installs Docker, sets up the `RICKROLL-BRIEFCASE` access point, downloads the container images and starts the briefcase at each boot.
 
-Use your own Wi-Fi country code instead of `DE`. To build the images on the Pi instead of downloading them, add `--build`. For all options, run `~/rickroll_briefcase/scripts/install.sh --help`.
+To install the complete source and build the images on the Pi instead, use `full_install.sh`. The build takes approximately 10 to 20 minutes on a Pi 4.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BatchCodes/rickroll_briefcase/main/full_install.sh | bash -s -- --country DE
+```
+
+For all options, run `~/rickroll_briefcase/scripts/setup.sh --help`.
 
 Then do these steps:
 
@@ -78,7 +84,7 @@ docker compose pull
 docker compose up -d
 ```
 
-The code is in the container images, so this is the complete update. If you installed with `--build`, run the `curl` command from the quick start again instead. It also updates the installer and `compose.yml`. It keeps your settings and videos, and it is safe to run more than one time.
+The code is in the container images, so this is the complete update. If you used `full_install.sh`, run that `curl` command again instead. It also updates the installer and `compose.yml`. It keeps your settings and videos, and it is safe to run more than one time.
 
 ## Documentation
 
