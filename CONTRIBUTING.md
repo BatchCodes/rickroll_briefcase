@@ -79,4 +79,4 @@ Maintainers make releases.
 3. Make a tag, for example `git tag v1.2.0`.
 4. Push the tag with `git push origin v1.2.0`.
 
-CI then builds the `linux/arm64` and `linux/amd64` images and pushes them to GHCR with the tags `X.Y.Z`, `X.Y` and `latest`. Write the release notes on the GitHub release page. List the new features, the fixes and any change that needs user action.
+CI then builds the `linux/arm64` and `linux/amd64` images and pushes them to GHCR with the tags `X.Y.Z` and `X.Y`. Each push to `main` also builds the images and pushes them with the tag `latest`, which the Pi downloads by default. To use a release on the Pi, set `BRIEFCASE_VERSION=X.Y.Z` in `.env`. Write the release notes on the GitHub release page. List the new features, the fixes and any change that needs user action.
