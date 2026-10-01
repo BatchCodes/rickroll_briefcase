@@ -45,14 +45,15 @@ Open <http://localhost:8080>. Use the "Lid" and "Arm" buttons to simulate the br
 
 You need a Raspberry Pi 4 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (64-bit). Build the hardware first. Refer to the [hardware guide](docs/hardware/parts.md).
 
+Run this command on the Pi as your normal user, for example over SSH:
+
 ```bash
-sudo apt install -y git
-git clone https://github.com/BatchCodes/rickroll_briefcase.git
-cd rickroll_briefcase
-sudo ./scripts/install.sh --country DE
+curl -fsSL https://raw.githubusercontent.com/BatchCodes/rickroll_briefcase/main/scripts/bootstrap.sh | bash -s -- --country DE
 ```
 
-The script asks for a Wi-Fi password. It installs Docker, sets up the `RICKROLL-BRIEFCASE` access point, downloads the container images and starts the briefcase at each boot. Use your own Wi-Fi country code instead of `DE`. To build the images on the Pi instead of downloading them, add `--build`. Run `./scripts/install.sh --help` for all options.
+The command downloads the repository to `~/rickroll_briefcase` as an archive. It needs no git and no GitHub login. Then it runs the installer with `sudo`. The installer asks for a Wi-Fi password. It installs Docker, sets up the `RICKROLL-BRIEFCASE` access point, downloads the container images and starts the briefcase at each boot.
+
+Use your own Wi-Fi country code instead of `DE`. To build the images on the Pi instead of downloading them, add `--build`. For all options, run `~/rickroll_briefcase/scripts/install.sh --help`.
 
 Then do these steps:
 
@@ -69,16 +70,15 @@ An update needs an internet connection. The briefcase Wi-Fi is an access point, 
 - On a Pi 4, connect an Ethernet cable to your router.
 - On the web page, push "Connect to known Wi-Fi". The Pi then connects to a Wi-Fi network that it knows. If it cannot connect in 60 s, it goes back to the access point. After a reboot, the Pi is always an access point again.
 
-Then run these commands on the Pi, for example over SSH:
+To update the briefcase software, run these commands on the Pi, for example over SSH:
 
 ```bash
-cd rickroll_briefcase
-git pull
+cd ~/rickroll_briefcase
 docker compose pull
 docker compose up -d
 ```
 
-If you installed with `--build`, run `docker compose build` instead of `docker compose pull`. You can also run `sudo ./scripts/install.sh` again. It is safe to run more than one time.
+The code is in the container images, so this is the complete update. If you installed with `--build`, run the `curl` command from the quick start again instead. It also updates the installer and `compose.yml`. It keeps your settings and videos, and it is safe to run more than one time.
 
 ## Documentation
 

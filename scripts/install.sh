@@ -13,6 +13,7 @@ HOTSPOT_CONNECTION="briefcase-hotspot"
 POLKIT_RULE="/etc/polkit-1/rules.d/50-rickroll-briefcase.rules"
 DNSMASQ_SHARED_CONF="/etc/NetworkManager/dnsmasq-shared.d/rickroll-briefcase.conf"
 FRIENDLY_NAME="briefcase.lan"
+DEFAULT_IMAGE_OWNER="batchcodes"
 HOTSPOT_ADDRESS="10.42.0.1"
 DOCKER_INSTALL_URL="https://get.docker.com"
 CONFIG_BEGIN="# rickroll_briefcase begin"
@@ -144,8 +145,13 @@ read_password() {
     return 0
   fi
 
+  if [[ ! -r /dev/tty ]]; then
+    printf 'error: there is no terminal for the password prompt. Give the password with --password.\n' >&2
+    exit 1
+  fi
+
   while true; do
-    read -r -s -p "Wi-Fi password for ${SSID} (8 to 63 characters, for example never-gonna-9): " PASSWORD
+    read -r -s -p "Wi-Fi password for ${SSID} (8 to 63 characters, for example never-gonna-9): " PASSWORD </dev/tty
     printf '\n'
     if [[ "${#PASSWORD}" -ge 8 ]] && [[ "${#PASSWORD}" -le 63 ]]; then
       return 0
@@ -201,6 +207,9 @@ image_owner() {
   local remote_url
   local owner
 
+  if ! command -v git >/dev/null 2>&1; then
+    return 1
+  fi
   if ! remote_url="$(git -C "${REPO_DIR}" remote get-url origin 2>/dev/null)"; then
     return 1
   fi
@@ -212,20 +221,21 @@ image_owner() {
 }
 
 choose_images() {
-  local owner
+  local owner="${DEFAULT_IMAGE_OWNER}"
+  local remote_owner
 
-  if [[ "${BUILD_LOCALLY}" -eq 0 ]] && owner="$(image_owner)"; then
-    set_env_value BRIEFCASE_IMAGE_OWNER "${owner}"
-    set_env_value COMPOSE_FILE "${REPO_DIR}/compose.yml"
-    printf 'The Pi downloads the images from ghcr.io/%s.\n' "${owner}"
+  if [[ "${BUILD_LOCALLY}" -eq 1 ]]; then
+    set_env_value COMPOSE_FILE "${REPO_DIR}/compose.yml:${REPO_DIR}/compose.build.yml"
+    printf 'The Pi builds the images itself.\n'
     return 0
   fi
 
-  if [[ "${BUILD_LOCALLY}" -eq 0 ]]; then
-    printf 'The git remote is not on GitHub, so the Pi builds the images itself.\n'
-    BUILD_LOCALLY=1
+  if remote_owner="$(image_owner)"; then
+    owner="${remote_owner}"
   fi
-  set_env_value COMPOSE_FILE "${REPO_DIR}/compose.yml:${REPO_DIR}/compose.build.yml"
+  set_env_value BRIEFCASE_IMAGE_OWNER "${owner}"
+  set_env_value COMPOSE_FILE "${REPO_DIR}/compose.yml"
+  printf 'The Pi downloads the images from ghcr.io/%s.\n' "${owner}"
 }
 
 set_env_value() {
