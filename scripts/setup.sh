@@ -41,6 +41,8 @@ The script is safe to run again.
   --no-hotspot         do not make the Wi-Fi access point
   --power-save         turn off Bluetooth and the board LEDs to decrease power
   --keep-console       keep the login prompt on the HDMI screen
+  --image-tag TAG      the image version to download, for example 0.1.0,
+                       sha-3f2a1c9 or latest (default: latest)
   --build              build the images on the Pi instead of downloading them
                        (slow: approximately 10 to 20 minutes on a Pi 4)
   -h, --help           show this help
@@ -58,6 +60,7 @@ parse_args() {
   POWER_SAVE=0
   KEEP_CONSOLE=0
   BUILD_LOCALLY=0
+  IMAGE_TAG="latest"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -99,6 +102,14 @@ parse_args() {
         ;;
       --build)
         BUILD_LOCALLY=1
+        shift
+        ;;
+      --image-tag)
+        IMAGE_TAG="$2"
+        shift 2
+        ;;
+      --image-tag=*)
+        IMAGE_TAG="${1#*=}"
         shift
         ;;
       -h | --help)
@@ -238,8 +249,9 @@ choose_images() {
     owner="${remote_owner}"
   fi
   set_env_value BRIEFCASE_IMAGE_OWNER "${owner}"
+  set_env_value BRIEFCASE_VERSION "${IMAGE_TAG}"
   set_env_value COMPOSE_FILE "${REPO_DIR}/compose.yml"
-  printf 'The Pi downloads the images from ghcr.io/%s.\n' "${owner}"
+  printf 'The Pi downloads the images ghcr.io/%s/...:%s.\n' "${owner}" "${IMAGE_TAG}"
 }
 
 set_env_value() {

@@ -4,9 +4,14 @@ set -euo pipefail
 REPO_OWNER="BatchCodes"
 REPO_NAME="rickroll_briefcase"
 DEFAULT_DIR="${HOME}/rickroll_briefcase"
-DEFAULT_BRANCH="main"
-ARCHIVE_URL_BASE="${BRIEFCASE_ARCHIVE_URL_BASE:-https://codeload.github.com/${REPO_OWNER}/${REPO_NAME}/tar.gz/refs/heads}"
+DEFAULT_REF="main"
+# The release workflow sets this in the copy of install.sh that it attaches
+# to a release, so that the release installer installs its own release.
+DEFAULT_VERSION=""
+GITHUB_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}"
 RAW_URL_BASE="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main"
+SOURCE_ARCHIVE_URL_BASE="${BRIEFCASE_ARCHIVE_URL_BASE:-https://codeload.github.com/${REPO_OWNER}/${REPO_NAME}/tar.gz}"
+RELEASE_URL_BASE="${BRIEFCASE_RELEASE_URL_BASE:-${GITHUB_URL}/releases/download}"
 KEEP_ENTRIES=(".env" "data")
 RUNTIME_FILES=(
   "compose.yml"
@@ -29,17 +34,24 @@ Full install (the complete source, and the Pi builds the images itself):
 
   curl -fsSL ${RAW_URL_BASE}/full_install.sh | bash -s -- --country DE
 
-The script downloads the repository as an archive (no git and no GitHub
-login). A normal install keeps only the files that it needs to run the
-images. A full install keeps everything. Then the script runs
-scripts/setup.sh with sudo. On an update, it replaces the files and keeps
-.env and data/ (your settings and videos). Run it as your normal user, not
-as root.
+What to install:
+  (default)        the newest commit on main, with the "latest" images
+  --version TAG    a release or pre-release, for example v0.1.0. The script
+                   downloads the archives that are attached to the release,
+                   and uses the images with the same version
+  --ref REF        a commit hash or a branch, for example 3f2a1c9 or main.
+                   The script downloads the source archive of that commit. A
+                   commit on main uses the images of that commit (sha-<hash>)
 
-Options for this script:
-  --full          install the complete source and build the images on the Pi
-  --dir PATH      where to put the files, for example ~/rickroll_briefcase (default)
-  --branch NAME   the branch to install, for example main (default)
+Other options for this script:
+  --full           install the complete source and build the images on the Pi
+  --dir PATH       where to put the files, for example ~/rickroll_briefcase (default)
+
+The script needs no git and no GitHub login. A normal install keeps only the
+files that it needs to run the images. A full install keeps everything. Then
+the script runs scripts/setup.sh with sudo. On an update, it replaces the
+files and keeps .env and data/ (your settings and videos). Run it as your
+normal user, not as root.
 
 All other options go to setup.sh, for example --country DE or --power-save.
 Refer to scripts/setup.sh --help.
@@ -48,7 +60,8 @@ USAGE
 
 parse_args() {
   INSTALL_DIR="${DEFAULT_DIR}"
-  BRANCH="${DEFAULT_BRANCH}"
+  VERSION="${DEFAULT_VERSION}"
+  REF=""
   FULL_INSTALL=0
   SETUP_ARGS=()
 
@@ -62,12 +75,20 @@ parse_args() {
         INSTALL_DIR="${1#*=}"
         shift
         ;;
-      --branch)
-        BRANCH="$2"
+      --version)
+        VERSION="$2"
         shift 2
         ;;
-      --branch=*)
-        BRANCH="${1#*=}"
+      --version=*)
+        VERSION="${1#*=}"
+        shift
+        ;;
+      --ref | --branch)
+        REF="$2"
+        shift 2
+        ;;
+      --ref=* | --branch=*)
+        REF="${1#*=}"
         shift
         ;;
       --full)
@@ -84,6 +105,13 @@ parse_args() {
         ;;
     esac
   done
+
+  if [[ -n "${REF}" ]]; then
+    VERSION=""
+  fi
+  if [[ -z "${VERSION}" ]] && [[ -z "${REF}" ]]; then
+    REF="${DEFAULT_REF}"
+  fi
 }
 
 require_system() {
@@ -120,6 +148,49 @@ check_install_dir() {
   exit 1
 }
 
+is_commit_hash() {
+  [[ "$1" =~ ^[0-9a-f]{7,40}$ ]]
+}
+
+kind_name() {
+  if [[ "${FULL_INSTALL}" -eq 1 ]]; then
+    printf 'full\n'
+    return 0
+  fi
+  printf 'runtime\n'
+}
+
+choose_source() {
+  local kind
+
+  kind="$(kind_name)"
+  if [[ -n "${VERSION}" ]]; then
+    ARCHIVE_URL="${RELEASE_URL_BASE}/${VERSION}/${REPO_NAME}-${kind}-${VERSION}.tar.gz"
+    ARCHIVE_IS_FILTERED=1
+    IMAGE_TAG="${VERSION#v}"
+    SOURCE_LABEL="release ${VERSION}, ${kind} archive"
+    return 0
+  fi
+
+  ARCHIVE_URL="${SOURCE_ARCHIVE_URL_BASE}/${REF}"
+  ARCHIVE_IS_FILTERED=0
+  SOURCE_LABEL="${REF}, source archive"
+  if is_commit_hash "${REF}"; then
+    IMAGE_TAG="sha-${REF:0:7}"
+    return 0
+  fi
+  if [[ "${REF}" == "${DEFAULT_REF}" ]]; then
+    IMAGE_TAG="latest"
+    return 0
+  fi
+
+  if [[ "${FULL_INSTALL}" -eq 0 ]]; then
+    printf 'error: CI publishes images only for %s, not for the branch %s. Use full_install.sh to build this branch on the Pi.\n' "${DEFAULT_REF}" "${REF}" >&2
+    exit 1
+  fi
+  IMAGE_TAG="latest"
+}
+
 unpack_archive() {
   local archive="$1"
   local target="$2"
@@ -129,12 +200,12 @@ unpack_archive() {
 
   prefix="$(tar -tzf "${archive}" | awk -F/ 'NR == 1 { print $1 }')"
   if [[ -z "${prefix}" ]]; then
-    printf 'error: the downloaded archive is empty. Check the branch name %s.\n' "${BRANCH}" >&2
+    printf 'error: the downloaded archive is empty.\n' >&2
     exit 1
   fi
 
   mkdir -p "${target}"
-  if [[ "${FULL_INSTALL}" -eq 1 ]]; then
+  if [[ "${FULL_INSTALL}" -eq 1 ]] || [[ "${ARCHIVE_IS_FILTERED}" -eq 1 ]]; then
     tar -xzf "${archive}" -C "${target}" --strip-components=1
     return 0
   fi
@@ -147,21 +218,19 @@ unpack_archive() {
 
 download_files() {
   local entry
-  local kind="normal"
-
-  if [[ "${FULL_INSTALL}" -eq 1 ]]; then
-    kind="full"
-  fi
 
   WORK_DIR="$(mktemp -d)"
   trap 'rm -rf "${WORK_DIR}"' EXIT
 
-  printf '==> Downloading %s/%s (%s, %s install)\n' "${REPO_OWNER}" "${REPO_NAME}" "${BRANCH}" "${kind}"
-  curl -fsSL "${ARCHIVE_URL_BASE}/${BRANCH}" -o "${WORK_DIR}/source.tar.gz"
+  printf '==> Downloading %s/%s (%s)\n' "${REPO_OWNER}" "${REPO_NAME}" "${SOURCE_LABEL}"
+  if ! curl -fsSL "${ARCHIVE_URL}" -o "${WORK_DIR}/source.tar.gz"; then
+    printf 'error: cannot download %s. Check the version or the commit.\n' "${ARCHIVE_URL}" >&2
+    exit 1
+  fi
   unpack_archive "${WORK_DIR}/source.tar.gz" "${WORK_DIR}/source"
 
   if [[ ! -f "${WORK_DIR}/source/compose.yml" ]]; then
-    printf 'error: the downloaded archive does not contain compose.yml. Check the branch name %s.\n' "${BRANCH}" >&2
+    printf 'error: the downloaded archive does not contain compose.yml.\n' >&2
     exit 1
   fi
 
@@ -179,7 +248,7 @@ download_files() {
 }
 
 run_setup() {
-  local -a extra_args=()
+  local -a extra_args=("--image-tag" "${IMAGE_TAG}")
 
   if [[ "${FULL_INSTALL}" -eq 1 ]]; then
     extra_args+=("--build")
@@ -193,8 +262,11 @@ main() {
   parse_args "$@"
   require_system
   check_install_dir
+  choose_source
   download_files
   run_setup
 }
 
-main "$@"
+if [[ "${BRIEFCASE_INSTALL_SOURCED:-0}" != "1" ]]; then
+  main "$@"
+fi
