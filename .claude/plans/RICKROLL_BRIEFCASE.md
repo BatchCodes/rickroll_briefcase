@@ -247,9 +247,28 @@ The user re-stated the switch requirements after phase 5. The outside of the bri
 6.5. [ ] (bd: none) Latch wiring design and documentation with an SVG diagram in `docs/hardware/wiring.md`: two Pololu switches in the VBUS lines of the Pi and monitor USB-C cables, with CC passed through, the 2-pole power switch (GPIO 3 sense and the RC pulse to the `ON` inputs), and GPIO 26 to both `OFF` inputs. Adapt the design to the step 6.1 result. Add the parts to the parts list.
 6.6. [ ] (bd: none) Test with the latch (after the parts arrive): an off-state draw of approximately 0, a clean shutdown before the power cut, the monitor power-up and USB-C PD negotiation after "on", and 20 power cycles. Record the results.
 
-## Phase 7: Future Work
+## Phase 7: Video Selector Knob
 
-Not started. Candidate items: an ESP32 power controller for a long standby time, a physical video selector, a separate amplifier, a web app PIN or login, a shutdown button, video thumbnails, a read-only root file system (overlay) for safer power loss, and a pre-built SD card image with `pi-gen`.
+The user has a KY-040 rotary encoder module (pins `CLK`, `DT`, `SW`, `+`, `GND`). The user wants to choose the video with the knob: disarm the briefcase, open it, turn the knob to the wanted video, close it, arm it. The next opening then plays that video.
+
+### Decisions
+
+- Wiring -> `CLK` to GPIO 22 (pin 15), `DT` to GPIO 23 (pin 16), `SW` to GPIO 24 (pin 18), `+` to 3.3 V (pin 17), `GND` to pin 20. The module has pull-up resistors to `+`, so `+` must be 3.3 V, never 5 V.
+- Turning while disarmed -> select the next or previous video in the library, in name order, and wrap round at the ends. The selection sets the "Video to play" setting, the same as the web app. In the `cycle` and `shuffle` modes, the selected video plays at the next opening, and the mode continues from there.
+- Screen feedback (user decision) -> the screen shows the frame at the start position of the selected video, so the frame that appears when the lid opens. No sound. The name of the video shows as text for about 3 s.
+- Turning while armed -> nothing happens.
+- Knob button (`SW`) -> no function for now. The user did not choose a function.
+- Default -> the knob is off until `.env` sets its pins, so an installation without a knob does not change.
+
+### Implementation Steps
+
+7.1. [ ] (bd: none) Knob input: a `gpiozero` `RotaryEncoder` on the `BRIEFCASE_KNOB_CLK_PIN` and `BRIEFCASE_KNOB_DT_PIN` pins, with one event per detent, and a simulated knob for the laptop (buttons in the web app). Add the pins to `compose.yml` and `scripts/setup.sh --knob`. Add tests.
+7.2. [ ] (bd: none) Selection: while disarmed, a knob step selects the next or previous video, stores it as the "Video to play", loads it paused and muted at its start position, and shows its name with the `mpv` `show-text` command. The display is on while disarmed with the lid open. Armed steps do nothing. Add tests.
+7.3. [ ] (bd: none) Test on the Pi 5: the number of events per detent, the response time from a turn to the new frame, and the web app update. Update the wiring and configuration documentation.
+
+## Phase 8: Future Work
+
+Not started. Candidate items: an ESP32 power controller for a long standby time, a function for the knob button, a separate amplifier, a web app PIN or login, a shutdown button, video thumbnails, a read-only root file system (overlay) for safer power loss, and a pre-built SD card image with `pi-gen`.
 
 ## Findings
 
