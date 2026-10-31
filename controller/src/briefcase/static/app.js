@@ -125,6 +125,10 @@ function renderStatus(status) {
   $("#sim-power").hidden = !hasPower;
   $("#sim-power").textContent = power.switch_on === false ? "Power on" : "Power off";
 
+  const hasKnob = Boolean(status.knob && status.knob.enabled);
+  $("#sim-knob-left").hidden = !hasKnob;
+  $("#sim-knob-right").hidden = !hasKnob;
+
   $("#simulate").hidden = !status.simulated_inputs;
   $("#sim-lid").textContent = status.lid_open ? "Close lid" : "Open lid";
   $("#sim-arm").textContent = status.armed ? "Disarm" : "Arm";
@@ -402,6 +406,14 @@ function bindEvents() {
       ),
     ),
   );
+  for (const [id, step] of [
+    ["#sim-knob-left", -1],
+    ["#sim-knob-right", 1],
+  ]) {
+    $(id).addEventListener("click", () =>
+      run(async () => renderStatus(await api("POST", "/api/simulate", { knob: step }))),
+    );
+  }
   $("#sim-arm").addEventListener("click", () =>
     run(async () =>
       renderStatus(await api("POST", "/api/simulate", { armed: !lastStatus.armed })),

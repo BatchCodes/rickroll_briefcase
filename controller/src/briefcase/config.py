@@ -68,6 +68,10 @@ class AppConfig:
     power_switch_pin: int | None = None
     power_on_when_low: bool = True
     power_off_delay_sec: float = 2.0
+    knob_clk_pin: int | None = None
+    knob_dt_pin: int | None = None
+    knob_steps_per_detent: int = 1
+    knob_invert: bool = False
 
     @property
     def settings_path(self) -> Path:
@@ -116,4 +120,8 @@ class AppConfig:
             power_switch_pin=_env_optional_int("POWER_SWITCH_PIN"),
             power_on_when_low=_env_bool("POWER_ON_WHEN_LOW", True),
             power_off_delay_sec=float(_env("POWER_OFF_DELAY_SEC", "2")),
+            knob_clk_pin=_env_optional_int("KNOB_CLK_PIN"),
+            knob_dt_pin=_env_optional_int("KNOB_DT_PIN"),
+            knob_steps_per_detent=int(_env("KNOB_STEPS_PER_DETENT", "1")),
+            knob_invert=_env_bool("KNOB_INVERT", False),
         )

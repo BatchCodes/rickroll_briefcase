@@ -11,6 +11,8 @@ CMDLINE_TXT="${BOOT_DIR}/cmdline.txt"
 SERVICE_NAME="rickroll-briefcase"
 POWER_SWITCH_PIN=3
 POWER_LATCH_PIN=26
+KNOB_CLK_PIN=22
+KNOB_DT_PIN=23
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 HOTSPOT_CONNECTION="briefcase-hotspot"
 POLKIT_RULE="/etc/polkit-1/rules.d/50-rickroll-briefcase.rules"
@@ -51,6 +53,9 @@ The script is safe to run again.
                        latch on GPIO 26 (pin 37) at the end of a shutdown, so
                        the latch can disconnect the power
   --no-power-switch    remove the power switch configuration
+  --knob               use a KY-040 video selector knob: CLK on GPIO 22 (pin 15),
+                       DT on GPIO 23 (pin 16), + on 3.3 V (pin 17), GND (pin 20)
+  --no-knob            remove the knob configuration
   --lid-closed-when-high
                        for a lid sensor that is open (off) when the magnet is
                        near, so the GPIO pin is high when the lid is closed
@@ -79,6 +84,7 @@ parse_args() {
   IMAGE_TAG="latest"
   POWER_MODE=""
   LID_CLOSED_WHEN_LOW=""
+  KNOB_MODE=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -128,6 +134,14 @@ parse_args() {
         ;;
       --power-latch)
         POWER_MODE="latch"
+        shift
+        ;;
+      --knob)
+        KNOB_MODE="on"
+        shift
+        ;;
+      --no-knob)
+        KNOB_MODE="off"
         shift
         ;;
       --lid-closed-when-high)
@@ -282,6 +296,13 @@ write_env() {
   set_env_value BRIEFCASE_HTTP_PORT 80
   set_env_value BRIEFCASE_PLAYER_EXTRA_ARGS "$(hdmi_audio_args)"
   set_env_value BRIEFCASE_POWER_MODE "${POWER_MODE}"
+  if [[ "${KNOB_MODE}" == "on" ]]; then
+    set_env_value BRIEFCASE_KNOB_CLK_PIN "${KNOB_CLK_PIN}"
+    set_env_value BRIEFCASE_KNOB_DT_PIN "${KNOB_DT_PIN}"
+  elif [[ "${KNOB_MODE}" == "off" ]]; then
+    set_env_value BRIEFCASE_KNOB_CLK_PIN ""
+    set_env_value BRIEFCASE_KNOB_DT_PIN ""
+  fi
   if [[ -n "${LID_CLOSED_WHEN_LOW}" ]]; then
     set_env_value BRIEFCASE_LID_CLOSED_WHEN_LOW "${LID_CLOSED_WHEN_LOW}"
   fi

@@ -185,3 +185,10 @@ def test_resume_window_setting(setup):
     body = client.put("/api/settings", json={"resume_window": "20"}).json()
     assert body["resume_window_sec"] == 20.0
     assert client.put("/api/settings", json={"resume_window": "x"}).status_code == 400
+
+
+def test_simulated_knob_needs_a_knob(setup):
+    client, *_ = setup
+    assert client.get("/api/status").json()["knob"] == {"enabled": False}
+    assert client.post("/api/simulate", json={"knob": 1}).status_code == 404
+    assert client.post("/api/simulate", json={"knob": 2}).status_code == 422

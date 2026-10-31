@@ -17,6 +17,7 @@ from briefcase import __version__
 from briefcase.config import AppConfig
 from briefcase.controller import BriefcaseController, ControllerError
 from briefcase.inputs import Inputs, SimulatedInputs
+from briefcase.knob import Knob, SimulatedKnob
 from briefcase.library import Library, LibraryError
 from briefcase.network import Mode, NetworkController, NetworkError
 from briefcase.power import PowerManager
@@ -73,6 +74,7 @@ class SimulateRequest(BaseModel):
     lid_open: bool | None = None
     armed: bool | None = None
     power_on: bool | None = None
+    knob: Literal[-1, 1] | None = None
 
 
 def _bad_request(error: Exception) -> HTTPException:
@@ -90,6 +92,7 @@ def create_app(
     inputs: Inputs,
     network: NetworkController | None = None,
     power: PowerManager | None = None,
+    knob: Knob | None = None,
     lifespan: Any = None,
 ) -> FastAPI:
     network = network or NetworkController(None, 60)
@@ -140,6 +143,7 @@ def create_app(
     async def full_status() -> dict[str, Any]:
         data = (await controller.status_with_position()).to_dict()
         data["power"] = power.status() if power else {"state": "no_switch"}
+        data["knob"] = {"enabled": knob is not None}
         return data
 
     @app.get("/api/settings")
@@ -315,6 +319,12 @@ def create_app(
             raise HTTPException(
                 status_code=404, detail="The inputs are not simulated on this system."
             )
+        if body.knob is not None:
+            if not isinstance(knob, SimulatedKnob):
+                raise HTTPException(
+                    status_code=404, detail="This system has no simulated knob."
+                )
+            knob.turn(body.knob)
         inputs.set(lid_open=body.lid_open, armed=body.armed, power_on=body.power_on)
         await controller.inputs_changed()
         if power:

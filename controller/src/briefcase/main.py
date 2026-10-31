@@ -14,6 +14,7 @@ from briefcase.config import AppConfig
 from briefcase.controller import BriefcaseController
 from briefcase.display import create_display
 from briefcase.inputs import create_inputs
+from briefcase.knob import create_knob
 from briefcase.library import Library
 from briefcase.mpv import MpvClient, MpvPlayer
 from briefcase.network import create_network
@@ -35,6 +36,7 @@ def build_app(config: AppConfig) -> FastAPI:
     )
     network = create_network(config)
     power = create_power(config, inputs, controller)
+    knob = create_knob(config)
 
     @contextlib.asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -51,6 +53,8 @@ def build_app(config: AppConfig) -> FastAPI:
             await network.close()
             await client.close()
             inputs.close()
+            if knob is not None:
+                knob.close()
 
     return create_app(
         config,
@@ -60,6 +64,7 @@ def build_app(config: AppConfig) -> FastAPI:
         inputs,
         network=network,
         power=power,
+        knob=knob,
         lifespan=lifespan,
     )
 
