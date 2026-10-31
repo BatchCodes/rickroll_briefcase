@@ -37,6 +37,7 @@ class GlobalSettingsUpdate(BaseModel):
     armed_video: str | None = None
     default_start: str | float | None = None
     volume: int | None = None
+    resume_window: str | float | None = None
 
 
 class RenameRequest(BaseModel):
@@ -119,6 +120,7 @@ def create_app(
             "default_start": format_time(settings.default_start_sec),
             "default_start_sec": settings.default_start_sec,
             "volume": settings.volume,
+            "resume_window_sec": settings.resume_window_sec,
         }
 
     @app.get("/", response_class=HTMLResponse)
@@ -158,6 +160,8 @@ def create_app(
                 settings.armed_video = update.armed_video
             if update.default_start is not None:
                 settings.default_start_sec = parse_time(update.default_start)
+            if update.resume_window is not None:
+                settings.resume_window_sec = parse_time(update.resume_window)
             if update.volume is not None:
                 if not 0 <= update.volume <= 100:
                     raise ValueError("The volume must be from 0 to 100.")

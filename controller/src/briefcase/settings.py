@@ -17,6 +17,7 @@ LOGGER = logging.getLogger(__name__)
 
 DEFAULT_START_SEC = 30.0
 DEFAULT_VOLUME = 80
+DEFAULT_RESUME_WINDOW_SEC = 15.0
 TIME_PATTERN = re.compile(r"^(?:(?P<h>\d+):)?(?P<m>\d+):(?P<s>\d+(?:\.\d+)?)$")
 
 
@@ -106,7 +107,13 @@ class Settings(BaseModel):
     armed_video: str | None = None
     default_start_sec: float = DEFAULT_START_SEC
     volume: int = Field(default=DEFAULT_VOLUME, ge=0, le=100)
+    resume_window_sec: float = DEFAULT_RESUME_WINDOW_SEC
     videos: dict[str, VideoSettings] = Field(default_factory=dict)
+
+    @field_validator("resume_window_sec", mode="before")
+    @classmethod
+    def _parse_resume_window(cls, value: object) -> object:
+        return parse_time(value)  # type: ignore[arg-type]
 
     @field_validator("default_start_sec", mode="before")
     @classmethod

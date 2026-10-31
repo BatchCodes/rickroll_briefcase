@@ -77,9 +77,13 @@ function renderStatus(status) {
     badge.classList.add("warn");
   }
 
-  $("#now-video").textContent = status.current_video
+  let nowText = status.current_video
     ? `${status.current_video} from ${formatTime(status.start_sec || 0)}`
     : "";
+  if (status.resume_remaining_sec !== null && status.resume_remaining_sec !== undefined) {
+    nowText = `${status.current_video}: continues if opened within ${Math.ceil(status.resume_remaining_sec)} s`;
+  }
+  $("#now-video").textContent = nowText;
   $("#lid-state").textContent = status.lid_open ? "Open" : "Closed";
   $("#arm-state").textContent = status.armed ? "Armed" : "Disarmed";
   $("#player-state").textContent = status.player_connected ? "Connected" : "Offline";
@@ -143,6 +147,7 @@ function renderSettings(settings) {
   select.value = settings.armed_video || (videos[0] && videos[0].name) || "";
   form.selection_mode.value = settings.selection_mode;
   form.default_start.value = settings.default_start;
+  form.resume_window.value = settings.resume_window_sec;
   form.volume.value = settings.volume;
   $("#volume-value").textContent = settings.volume;
 }
@@ -412,6 +417,7 @@ function bindEvents() {
     const body = {
       selection_mode: form.selection_mode.value,
       default_start: form.default_start.value.trim() || "00:30",
+      resume_window: form.resume_window.value.trim() || "15",
       volume: Number(form.volume.value),
     };
     if (form.armed_video.value) body.armed_video = form.armed_video.value;

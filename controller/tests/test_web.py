@@ -177,3 +177,11 @@ def test_status_reports_no_power_switch(setup):
     status = client.get("/api/status").json()
     assert status["power"]["state"] == "no_switch"
     assert status["power_switch_on"] is None
+
+
+def test_resume_window_setting(setup):
+    client, *_ = setup
+    assert client.get("/api/settings").json()["resume_window_sec"] == 15.0
+    body = client.put("/api/settings", json={"resume_window": "20"}).json()
+    assert body["resume_window_sec"] == 20.0
+    assert client.put("/api/settings", json={"resume_window": "x"}).status_code == 400

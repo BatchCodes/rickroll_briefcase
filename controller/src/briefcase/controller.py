@@ -66,6 +66,7 @@ class Status:
     error: str | None
     position_sec: float | None = None
     duration_sec: float | None = None
+    resume_remaining_sec: float | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -99,6 +100,8 @@ class BriefcaseController:
         self._shutting_down = False
         self._error: str | None = None
         self._retry: asyncio.TimerHandle | None = None
+        self._resume_timer: asyncio.TimerHandle | None = None
+        self._resume_deadline: float | None = None
 
     @property
     def state(self) -> State:
@@ -118,7 +121,13 @@ class BriefcaseController:
             test_play=self._test_play,
             paused=self._paused,
             error=self._error,
+            resume_remaining_sec=self._resume_remaining(),
         )
+
+    def _resume_remaining(self) -> float | None:
+        if self._resume_deadline is None or self._loop is None:
+            return None
+        return max(0.0, self._resume_deadline - self._loop.time())
 
     async def status_with_position(self) -> Status:
         """The status, with the playback position and the video length."""
@@ -166,6 +175,7 @@ class BriefcaseController:
                 self._player.set_volume(self._settings.get().volume)
             )
             if self._state is not State.PLAYING:
+                self._cancel_resume_window()
                 self._prepared = False
             await self._apply()
 
@@ -174,6 +184,8 @@ class BriefcaseController:
     async def library_changed(self) -> None:
         async def handler() -> None:
             names = self._library.names()
+            if self._state is not State.PLAYING:
+                self._cancel_resume_window()
             if self._current not in names:
                 self._prepared = False
                 if self._state in (State.PLAYING, State.FINISHED):
@@ -246,6 +258,7 @@ class BriefcaseController:
         """Stop the video before the Pi powers off. Ignore later events."""
 
         async def handler() -> None:
+            self._cancel_resume_window()
             if self._state is State.PLAYING and self._player.connected:
                 await self._stop_playback()
             await self._display.off()
@@ -267,6 +280,7 @@ class BriefcaseController:
 
     async def _on_player_connection(self, connected: bool) -> None:
         async def handler() -> None:
+            self._cancel_resume_window()
             self._prepared = False
             if not connected:
                 self._state = State.PLAYER_OFFLINE
@@ -311,6 +325,7 @@ class BriefcaseController:
         )
 
     async def _refresh(self) -> None:
+        self._cancel_resume_window()
         self._prepared = False
         await self._apply()
 
@@ -336,7 +351,7 @@ class BriefcaseController:
         if self._state is State.PLAYING:
             if wants_play:
                 return
-            await self._stop_playback()
+            await self._stop_playback(keep_position=True)
         elif self._state is State.FINISHED:
             if wants_play:
                 return
@@ -369,21 +384,58 @@ class BriefcaseController:
         LOGGER.info("Ready: %s at %.1f s", name, start_sec)
 
     async def _play(self) -> None:
+        if self._resume_deadline is not None:
+            LOGGER.info("Reopened within the resume window. Continuing")
+        self._cancel_resume_window()
         self._paused = False
         await self._player.set_mute(False)
         await asyncio.gather(self._player.play(), self._display.on())
         self._state = State.PLAYING
         LOGGER.info("Playing %s", self._current)
 
-    async def _stop_playback(self) -> None:
+    async def _stop_playback(self, keep_position: bool = False) -> None:
+        """Stop the video.
+
+        With ``keep_position`` and a resume window, the video stays paused
+        at its position. Opening the lid within the window continues it.
+        After the window, the next video loads at its start position.
+        """
         self._paused = False
         await self._player.pause()
         await self._player.set_mute(True)
         await self._save_resume_position()
         await self._display.off()
+        window = self._settings.get().resume_window_sec
+        if keep_position and window > 0 and self._loop is not None:
+            self._start_resume_window(window)
+            LOGGER.info("Paused %s. Resume window: %.0f s", self._current, window)
+            return
         self._prepared = False
         self._advance()
         LOGGER.info("Stopped %s", self._current)
+
+    def _start_resume_window(self, window: float) -> None:
+        self._cancel_resume_window()
+        assert self._loop is not None
+        self._resume_deadline = self._loop.time() + window
+        self._resume_timer = self._loop.call_later(
+            window, lambda: asyncio.ensure_future(self._run(self._end_resume_window))
+        )
+
+    def _cancel_resume_window(self) -> None:
+        if self._resume_timer is not None:
+            self._resume_timer.cancel()
+        self._resume_timer = None
+        self._resume_deadline = None
+
+    async def _end_resume_window(self) -> None:
+        if self._resume_deadline is None or self._state is State.PLAYING:
+            return
+        self._cancel_resume_window()
+        LOGGER.info("The resume window ended. Loading the start position")
+        self._prepared = False
+        self._advance()
+        await self._apply()
 
     async def _save_resume_position(self) -> None:
         if self._current is None:

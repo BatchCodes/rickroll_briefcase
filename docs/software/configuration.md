@@ -63,12 +63,15 @@ Each setting has a default. The briefcase operates correctly with no configurati
 | Selection mode         | global    | `single` (always the video to play), `cycle` (the next video each time), `shuffle` (a random video each time) | `single`                  |
 | Default start position | global    | a time, for example `00:30`                                                                                   | `00:30`                   |
 | Volume                 | global    | 0 to 100                                                                                                      | 80                        |
+| Resume window          | global    | seconds, `0` turns it off                                                                                     | `15`                      |
 | Start mode             | per video | `fixed`, `beginning`, `random` (one of the cue points), `resume`                                              | `fixed`                   |
 | Start position         | per video | a time, or empty for the default start position                                                               | empty                     |
 | Cue points             | per video | a list of times, for example `00:30, 01:12`                                                                   | empty                     |
 | At the end             | per video | `loop` or `stop` (black screen until the lid closes)                                                          | `loop`                    |
 
 If a start position is after the end of a short video, the video starts at `00:00`.
+
+When the lid closes, the video pauses at its position. If the lid opens again within the resume window, the video continues from that position. After the window, the briefcase loads the video at its start position again, and moves to the next video in the `cycle` and `shuffle` modes. A settings change ends the window.
 
 In the `cycle` and `shuffle` modes, the briefcase changes to the next video when the lid closes. The `shuffle` mode does not play the same video two times in sequence.
 

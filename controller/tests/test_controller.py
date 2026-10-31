@@ -33,6 +33,7 @@ def parts(tmp_path, videos_dir):
     display = FakeDisplay()
     library = Library(videos_dir)
     store = SettingsStore(tmp_path / "settings.json")
+    store.replace(Settings(resume_window_sec=0))
     controller = BriefcaseController(
         inputs, player, display, library, store, rng=random.Random(1)
     )
@@ -114,6 +115,7 @@ async def test_armed_video_and_start_modes(parts):
     inputs, player, _, store, controller = parts
     store.replace(
         Settings(
+            resume_window_sec=0,
             armed_video="b.mp4",
             videos={"b.mp4": VideoSettings(start_mode=StartMode.BEGINNING)},
         )
@@ -127,7 +129,11 @@ async def test_random_start_uses_cue_points(parts):
     _, player, _, store, controller = parts
     store.update_video(
         "a.mp4",
-        VideoSettings(start_mode=StartMode.RANDOM, cue_points_sec=[10, 20, 40]),
+        VideoSettings(
+            resume_window_sec=0,
+            start_mode=StartMode.RANDOM,
+            cue_points_sec=[10, 20, 40],
+        ),
     )
     await controller.start()
     assert player.loaded[1] in {10.0, 20.0, 40.0}
@@ -135,7 +141,9 @@ async def test_random_start_uses_cue_points(parts):
 
 async def test_resume_saves_position_on_close(parts):
     inputs, player, _, store, controller = parts
-    store.update_video("a.mp4", VideoSettings(start_mode=StartMode.RESUME))
+    store.update_video(
+        "a.mp4", VideoSettings(resume_window_sec=0, start_mode=StartMode.RESUME)
+    )
     await controller.start()
     assert player.loaded[1] == 0.0
 
@@ -151,7 +159,7 @@ async def test_resume_saves_position_on_close(parts):
 
 async def test_cycle_mode_moves_to_next_video_after_each_play(parts):
     inputs, player, _, store, controller = parts
-    store.replace(Settings(selection_mode=SelectionMode.CYCLE))
+    store.replace(Settings(resume_window_sec=0, selection_mode=SelectionMode.CYCLE))
     await controller.start()
     played = []
     for _ in range(4):
@@ -166,7 +174,7 @@ async def test_cycle_mode_moves_to_next_video_after_each_play(parts):
 
 async def test_shuffle_mode_does_not_repeat_immediately(parts):
     inputs, _, _, store, controller = parts
-    store.replace(Settings(selection_mode=SelectionMode.SHUFFLE))
+    store.replace(Settings(resume_window_sec=0, selection_mode=SelectionMode.SHUFFLE))
     await controller.start()
     played = []
     for _ in range(10):
@@ -183,7 +191,9 @@ async def test_shuffle_mode_does_not_repeat_immediately(parts):
 
 async def test_end_action_stop_finishes_and_close_prepares_again(parts):
     inputs, player, display, store, controller = parts
-    store.update_video("a.mp4", VideoSettings(end_action=EndAction.STOP))
+    store.update_video(
+        "a.mp4", VideoSettings(resume_window_sec=0, end_action=EndAction.STOP)
+    )
     await controller.start()
     assert player.loaded[2] is False
 
@@ -218,7 +228,7 @@ async def test_test_play_and_lid_change_cancels_it(parts):
 async def test_settings_change_reloads_when_idle(parts):
     _, player, _, store, controller = parts
     await controller.start()
-    store.replace(Settings(armed_video="c.mp4", volume=55))
+    store.replace(Settings(resume_window_sec=0, armed_video="c.mp4", volume=55))
     await controller.settings_changed()
 
     assert player.loaded[0].name == "c.mp4"
@@ -229,7 +239,7 @@ async def test_settings_change_does_not_interrupt_playback(parts):
     inputs, player, _, store, controller = parts
     inputs.set(lid_open=True)
     await controller.start()
-    store.replace(Settings(armed_video="c.mp4", volume=20))
+    store.replace(Settings(resume_window_sec=0, armed_video="c.mp4", volume=20))
     await controller.settings_changed()
 
     assert controller.state is State.PLAYING
@@ -349,3 +359,83 @@ async def test_status_with_position(parts):
     await controller.start()
     status = await controller.status_with_position()
     assert status.position_sec == 30.0
+
+
+async def test_reopen_within_resume_window_continues(parts, monkeypatch):
+    inputs, player, _, store, controller = parts
+    store.replace(Settings(resume_window_sec=0.2))
+    await controller.start()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    player.current_position = 47.0
+    preload_count = sum(1 for call in player.calls if call[0] == "preload")
+
+    inputs.set(lid_open=False)
+    await controller.inputs_changed()
+    assert controller.state is State.READY
+    assert player.paused
+    assert controller.status().resume_remaining_sec is not None
+
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    assert controller.state is State.PLAYING
+    assert player.current_position == 47.0
+    assert sum(1 for call in player.calls if call[0] == "preload") == preload_count
+    assert controller.status().resume_remaining_sec is None
+
+
+async def test_reopen_after_resume_window_starts_again(parts):
+    inputs, player, _, store, controller = parts
+    store.replace(Settings(resume_window_sec=0.05))
+    await controller.start()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    player.current_position = 47.0
+
+    inputs.set(lid_open=False)
+    await controller.inputs_changed()
+    await asyncio.sleep(0.15)
+
+    assert player.calls[-1] == ("preload", "a.mp4", 30.0, True)
+    assert controller.status().resume_remaining_sec is None
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    assert player.current_position == 30.0
+
+
+async def test_resume_window_zero_starts_again_at_once(parts):
+    inputs, player, _, store, controller = parts
+    store.replace(Settings(resume_window_sec=0))
+    await controller.start()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    inputs.set(lid_open=False)
+    await controller.inputs_changed()
+    assert player.calls[-1] == ("preload", "a.mp4", 30.0, True)
+
+
+async def test_cycle_mode_advances_after_resume_window(parts):
+    inputs, player, _, store, controller = parts
+    store.replace(Settings(selection_mode=SelectionMode.CYCLE, resume_window_sec=0.05))
+    await controller.start()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    inputs.set(lid_open=False)
+    await controller.inputs_changed()
+    assert controller.status().current_video == "a.mp4"
+    await asyncio.sleep(0.15)
+    assert controller.status().current_video == "b.mp4"
+
+
+async def test_settings_change_ends_resume_window(parts):
+    inputs, player, _, store, controller = parts
+    store.replace(Settings(resume_window_sec=10))
+    await controller.start()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    inputs.set(lid_open=False)
+    await controller.inputs_changed()
+    store.replace(Settings(resume_window_sec=10, armed_video="c.mp4"))
+    await controller.settings_changed()
+    assert controller.status().resume_remaining_sec is None
+    assert player.loaded[0].name == "c.mp4"
