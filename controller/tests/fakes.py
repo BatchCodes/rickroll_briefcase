@@ -62,6 +62,9 @@ class FakePlayer:
         self.calls.append(("seek", offset_sec))
         self.current_position = max(0.0, self.current_position + offset_sec)
 
+    async def show_text(self, text: str, duration_ms: int) -> None:
+        self.calls.append(("text", text))
+
     async def stop(self) -> None:
         self.calls.append(("stop",))
         self.loaded = None

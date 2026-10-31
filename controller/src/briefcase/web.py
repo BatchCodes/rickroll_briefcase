@@ -324,7 +324,7 @@ def create_app(
                 raise HTTPException(
                     status_code=404, detail="This system has no simulated knob."
                 )
-            knob.turn(body.knob)
+            await controller.knob_turned(body.knob)
         inputs.set(lid_open=body.lid_open, armed=body.armed, power_on=body.power_on)
         await controller.inputs_changed()
         if power:

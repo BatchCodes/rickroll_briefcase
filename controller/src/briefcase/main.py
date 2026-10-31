@@ -37,6 +37,8 @@ def build_app(config: AppConfig) -> FastAPI:
     network = create_network(config)
     power = create_power(config, inputs, controller)
     knob = create_knob(config)
+    if knob is not None:
+        knob.subscribe(controller.on_knob_threadsafe)
 
     @contextlib.asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:

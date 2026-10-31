@@ -29,6 +29,7 @@ The `controller` container runs one Python process with these parts:
 | `library.py`    | the video files: list, upload, rename, delete and format check                |
 | `settings.py`   | the playback settings, their defaults and the atomic settings file            |
 | `display.py`    | optional monitor power commands                                               |
+| `knob.py`       | the video selector knob (a KY-040 rotary encoder)                             |
 | `power.py`      | the power switch: a clean shutdown when the switch goes off                   |
 | `network.py`    | the Wi-Fi mode (hotspot or client) with the automatic fallback to the hotspot |
 | `web.py`        | the FastAPI JSON API and the phone web page                                   |
@@ -65,6 +66,12 @@ These rules prevent a lock-out:
 - The web app changes the mode 1.5 s after the request, so that the phone receives the reply first.
 
 In client mode, the web app is at `http://<hostname>.local` on the home network.
+
+## Video Selector Knob
+
+The optional knob is a KY-040 rotary encoder: `CLK` on GPIO 22 (pin 15), `DT` on GPIO 23 (pin 16), `+` on 3.3 V (pin 17) and `GND` on pin 20. Connect `+` to 3.3 V, never 5 V, because the module has pull-up resistors to `+`.
+
+While the briefcase is disarmed, each click selects the next or previous video, in name order. The selection becomes the "Video to play" setting. The screen shows the frame at the start position of the selected video, without sound, and the name of the video for 3 s. While the briefcase is armed, the knob does nothing.
 
 ## Power Switch
 

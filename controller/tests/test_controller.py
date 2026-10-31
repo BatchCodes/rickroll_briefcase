@@ -439,3 +439,61 @@ async def test_settings_change_ends_resume_window(parts):
     await controller.settings_changed()
     assert controller.status().resume_remaining_sec is None
     assert player.loaded[0].name == "c.mp4"
+
+
+async def test_knob_selects_next_and_previous_video_when_disarmed(parts):
+    inputs, player, _, store, controller = parts
+    inputs.set(armed=False, lid_open=True)
+    await controller.start()
+    assert controller.status().current_video == "a.mp4"
+
+    await controller.knob_turned(1)
+    assert controller.status().current_video == "b.mp4"
+    assert store.get().armed_video == "b.mp4"
+    assert player.loaded[0].name == "b.mp4"
+    assert player.loaded[1] == 30.0
+    assert player.paused and player.muted
+    assert player.calls[-1] == ("text", "2/3  b.mp4")
+    assert controller.state is State.DISARMED
+
+    await controller.knob_turned(-1)
+    await controller.knob_turned(-1)
+    assert controller.status().current_video == "c.mp4"
+
+
+async def test_knob_does_nothing_when_armed(parts):
+    inputs, player, _, store, controller = parts
+    await controller.start()
+    calls = len(player.calls)
+    await controller.knob_turned(1)
+    assert len(player.calls) == calls
+    assert store.get().armed_video is None
+
+
+async def test_knob_selection_plays_after_arming(parts):
+    inputs, player, _, store, controller = parts
+    store.replace(Settings(resume_window_sec=0, selection_mode=SelectionMode.CYCLE))
+    inputs.set(armed=False, lid_open=True)
+    await controller.start()
+    await controller.knob_turned(1)
+    await controller.knob_turned(1)
+
+    inputs.set(lid_open=False)
+    await controller.inputs_changed()
+    inputs.set(armed=True)
+    await controller.inputs_changed()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+
+    assert controller.state is State.PLAYING
+    assert controller.status().current_video == "c.mp4"
+
+
+async def test_knob_uses_the_video_start_position(parts):
+    inputs, player, _, store, controller = parts
+    store.update_video("b.mp4", VideoSettings(start_mode=StartMode.BEGINNING))
+    inputs.set(armed=False)
+    await controller.start()
+    await controller.knob_turned(1)
+    assert player.loaded == (player.loaded[0], 0.0, True)
+    assert player.loaded[0].name == "b.mp4"

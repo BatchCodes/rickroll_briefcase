@@ -33,6 +33,7 @@ from briefcase.settings import (
 LOGGER = logging.getLogger(__name__)
 
 RETRY_DELAY_SEC = 5.0
+KNOB_TEXT_MS = 3000
 
 
 class ControllerError(RuntimeError):
@@ -194,6 +195,51 @@ class BriefcaseController:
             elif self._state is not State.PLAYING:
                 self._prepared = False
             await self._apply()
+
+        await self._run(handler)
+
+    def on_knob_threadsafe(self, step: int) -> None:
+        if self._loop is None:
+            return
+        self._loop.call_soon_threadsafe(
+            lambda: asyncio.ensure_future(self.knob_turned(step))
+        )
+
+    async def knob_turned(self, step: int) -> None:
+        """Select the next or previous video. Only while disarmed."""
+
+        async def handler() -> None:
+            inputs = self._inputs.read()
+            if inputs.armed or self._state is State.PLAYING or self._shutting_down:
+                LOGGER.debug("Knob step ignored: armed or playing")
+                return
+            names = self._library.names()
+            if not names or not self._player.connected:
+                return
+            settings = self._settings.get()
+            if self._current in names:
+                index = names.index(self._current)
+            elif settings.armed_video in names:
+                index = names.index(settings.armed_video)
+            else:
+                index = 0
+            index = (index + step) % len(names)
+            name = names[index]
+            settings.armed_video = name
+            self._settings.replace(settings)
+            self._cancel_resume_window()
+            self._next = name
+            self._prepared = False
+            await self._prepare()
+            self._state = State.DISARMED
+            if inputs.lid_open:
+                await self._display.on()
+            await self._player_call(
+                self._player.show_text(
+                    f"{index + 1}/{len(names)}  {name}", KNOB_TEXT_MS
+                )
+            )
+            LOGGER.info("Knob: selected %s", name)
 
         await self._run(handler)
 
