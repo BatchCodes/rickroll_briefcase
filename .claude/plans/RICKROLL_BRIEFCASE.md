@@ -262,8 +262,8 @@ The user has a KY-040 rotary encoder module (pins `CLK`, `DT`, `SW`, `+`, `GND`)
 
 ### Implementation Steps
 
-7.1. [ ] (bd: none) Knob input: a `gpiozero` `RotaryEncoder` on the `BRIEFCASE_KNOB_CLK_PIN` and `BRIEFCASE_KNOB_DT_PIN` pins, with one event per detent, and a simulated knob for the laptop (buttons in the web app). Add the pins to `compose.yml` and `scripts/setup.sh --knob`. Add tests.
-7.2. [ ] (bd: none) Selection: while disarmed, a knob step selects the next or previous video, stores it as the "Video to play", loads it paused and muted at its start position, and shows its name with the `mpv` `show-text` command. The display is on while disarmed with the lid open. Armed steps do nothing. Add tests.
+7.1. [x] (bd: rickroll_briefcase-679.24) Knob input: a `gpiozero` `RotaryEncoder` on the `BRIEFCASE_KNOB_CLK_PIN` and `BRIEFCASE_KNOB_DT_PIN` pins, with one event per detent, and a simulated knob for the laptop (buttons in the web app). Add the pins to `compose.yml` and `scripts/setup.sh --knob`. Add tests.
+7.2. [x] (bd: rickroll_briefcase-679.25) Selection: while disarmed, a knob step selects the next or previous video, stores it as the "Video to play", loads it paused and muted at its start position, and shows its name with the `mpv` `show-text` command. The display is on while disarmed with the lid open. Armed steps do nothing. Add tests.
 7.3. [ ] (bd: none) Test on the Pi 5: the number of events per detent, the response time from a turn to the new frame, and the web app update. Update the wiring and configuration documentation.
 
 ## Phase 8: Future Work
@@ -308,3 +308,4 @@ Not started. Candidate items: an ESP32 power controller for a long standby time,
 - User request after the first Pi 5 test: a resume window. When the lid opens again within 15 s of a close, the video continues from its position. After the window, the next video loads at its start position as before. The window is a global setting (`resume_window_sec`, `0` turns it off). Tracked as bd task `rickroll_briefcase-679.23`.
 - Correction to the lid advice: the user's lid sensor closes when the parts are together, so the default `BRIEFCASE_LID_CLOSED_WHEN_LOW=true` is correct. The earlier description of the sensor was the wrong way round.
 - On the Pi 5, the video appeared only after the monitor cable moved to HDMI 0, because `setup.sh` forces `HDMI-A-1`. Tracked as bd issue `rickroll_briefcase-rur`. HDMI audio then also worked.
+- Step 7.2: `mpv.conf` sets `osd-level=0`, so the knob calls `show-text` with level 0. A window screenshot on the laptop showed the video name over the frame at the start position.
