@@ -43,7 +43,7 @@ Open <http://localhost:8080>. Use the "Lid" and "Arm" buttons to simulate the br
 
 ## Quick Start on a Raspberry Pi
 
-You need a Raspberry Pi 4 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (64-bit). Build the hardware first. Refer to the [hardware guide](docs/hardware/parts.md).
+You need a Raspberry Pi 4, a Raspberry Pi 5 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (64-bit). The Raspberry Pi Imager writes the SD card. In its OS customisation, set the hostname, your user, your home Wi-Fi and SSH. The installer needs internet. Build the hardware first. Refer to the [hardware guide](docs/hardware/parts.md).
 
 Run this command on the Pi as your normal user, for example over SSH:
 
@@ -68,6 +68,8 @@ curl -fsSL https://github.com/BatchCodes/rickroll_briefcase/releases/download/v0
 ```
 
 Use `full_install.sh` from the same release for a full install. To install one commit, add `--ref` with the commit hash, for example `--ref 3f2a1c9`. A commit on `main` uses the images of that commit.
+
+If your lid sensor is open (off) when the magnet is near, add `--lid-closed-when-high`.
 
 For all options, run `curl -fsSL https://raw.githubusercontent.com/BatchCodes/rickroll_briefcase/main/install.sh | bash -s -- --help` and `~/rickroll_briefcase/scripts/setup.sh --help`.
 

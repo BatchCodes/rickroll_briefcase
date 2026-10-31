@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 REPO_DIR="$(dirname -- "${SCRIPT_DIR}")"
+DEVICE_MODEL_FILE="/proc/device-tree/model"
 ENV_FILE="${REPO_DIR}/.env"
 BOOT_DIR="/boot/firmware"
 CONFIG_TXT="${BOOT_DIR}/config.txt"
@@ -50,6 +51,12 @@ The script is safe to run again.
                        latch on GPIO 26 (pin 37) at the end of a shutdown, so
                        the latch can disconnect the power
   --no-power-switch    remove the power switch configuration
+  --lid-closed-when-high
+                       for a lid sensor that is open (off) when the magnet is
+                       near, so the GPIO pin is high when the lid is closed
+  --lid-closed-when-low
+                       for a lid sensor that is closed (on) when the magnet is
+                       near (the default wiring)
   --image-tag TAG      the image version to download, for example 0.1.0,
                        sha-3f2a1c9 or latest (default: latest)
   --build              build the images on the Pi instead of downloading them
@@ -71,6 +78,7 @@ parse_args() {
   BUILD_LOCALLY=0
   IMAGE_TAG="latest"
   POWER_MODE=""
+  LID_CLOSED_WHEN_LOW=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -120,6 +128,14 @@ parse_args() {
         ;;
       --power-latch)
         POWER_MODE="latch"
+        shift
+        ;;
+      --lid-closed-when-high)
+        LID_CLOSED_WHEN_LOW="false"
+        shift
+        ;;
+      --lid-closed-when-low)
+        LID_CLOSED_WHEN_LOW="true"
         shift
         ;;
       --no-power-switch)
@@ -226,6 +242,26 @@ add_user_to_groups() {
   done
 }
 
+is_pi5_or_later() {
+  local model=""
+
+  if [[ -r "${DEVICE_MODEL_FILE}" ]]; then
+    model="$(tr -d '\0' <"${DEVICE_MODEL_FILE}")"
+  fi
+  [[ "${model}" =~ Raspberry\ Pi\ ([5-9]|[1-9][0-9]) ]]
+}
+
+check_power_mode() {
+  if [[ "${POWER_MODE}" != "switch" ]]; then
+    return 0
+  fi
+  if ! is_pi5_or_later; then
+    return 0
+  fi
+  printf 'error: --power-switch does not work on a Raspberry Pi 5. A Pi 5 does not wake from halt on GPIO 3, so the switch could shut the Pi down but not start it again. Use --power-latch when the power latch is fitted, or use --no-power-switch.\n' >&2
+  exit 1
+}
+
 resolve_power_mode() {
   local stored_mode=""
 
@@ -246,6 +282,9 @@ write_env() {
   set_env_value BRIEFCASE_HTTP_PORT 80
   set_env_value BRIEFCASE_PLAYER_EXTRA_ARGS "$(hdmi_audio_args)"
   set_env_value BRIEFCASE_POWER_MODE "${POWER_MODE}"
+  if [[ -n "${LID_CLOSED_WHEN_LOW}" ]]; then
+    set_env_value BRIEFCASE_LID_CLOSED_WHEN_LOW "${LID_CLOSED_WHEN_LOW}"
+  fi
   if [[ "${POWER_MODE}" == "none" ]]; then
     set_env_value BRIEFCASE_POWER_SWITCH_PIN ""
   else
@@ -521,6 +560,7 @@ main() {
   parse_args "$@"
   require_system
   resolve_power_mode
+  check_power_mode
   read_password
   check_password
   install_docker

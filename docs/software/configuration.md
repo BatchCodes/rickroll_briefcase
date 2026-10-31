@@ -43,7 +43,15 @@ docker compose up -d
 | `BRIEFCASE_POWER_OFF_DELAY_SEC`  | `2`           | the time that the power switch must stay off before the shutdown starts                                                                                                      |
 | `BRIEFCASE_LOG_LEVEL`            | `INFO`        | `DEBUG`, `INFO`, `WARNING` or `ERROR`                                                                                                                                        |
 
-Both switches connect their GPIO pin to ground when they are closed. The controller uses the internal pull-up resistors. With the default wiring, the lid is closed when the lid pin is low, and the briefcase is armed when the arm pin is low. To invert a switch, set `BRIEFCASE_LID_CLOSED_WHEN_LOW=false` or `BRIEFCASE_ARMED_WHEN_LOW=false` in `.env`.
+Both switches connect their GPIO pin to ground when they are closed. The controller uses the internal pull-up resistors. With the default wiring, the lid is closed when the lid pin is low, and the briefcase is armed when the arm pin is low. To invert a switch, set `BRIEFCASE_LID_CLOSED_WHEN_LOW=false` or `BRIEFCASE_ARMED_WHEN_LOW=false` in `.env`. For the lid sensor, `setup.sh --lid-closed-when-high` writes this setting, and later runs keep it.
+
+## Board Differences
+
+| Board       | Notes                                                                                                                                                                                                                                                             |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pi 4        | the primary test board. H.264 hardware decoding                                                                                                                                                                                                                   |
+| Pi 5        | no H.264 hardware decoder, but the CPU decodes 1080p30 H.264. It asks for a 5 V/5 A supply and can show a warning with 5 V/3 A. It does not wake from halt on GPIO 3, so `setup.sh --power-switch` is not available. Use `--power-latch` when the latch is fitted |
+| Pi Zero 2 W | H.264 hardware decoding, 512 MB memory. Use H.264 at 1080p30 or less                                                                                                                                                                                              |
 
 ## Playback Settings (Web App)
 

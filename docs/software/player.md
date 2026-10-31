@@ -113,6 +113,8 @@ This test checks the zero-touch rule: the briefcase must operate with no keyboar
 
 ## Test 5: Power Switch Without the Latch
 
+This test is not possible on a Raspberry Pi 5, because a Pi 5 does not wake from halt on GPIO 3. On a Pi 5, test the power switch with the latch (plan step 6.6).
+
 This test checks the power switch before the MOSFET latch hardware is fitted. Connect a toggle switch between GPIO 3 (pin 5) and ground (pin 6). "On" closes the switch.
 
 1. Run the installer again with the power switch option:
