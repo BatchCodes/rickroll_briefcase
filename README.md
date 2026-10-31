@@ -43,7 +43,7 @@ Open <http://localhost:8080>. Use the "Lid" and "Arm" buttons to simulate the br
 
 ## Quick Start on a Raspberry Pi
 
-You need a Raspberry Pi 4, a Raspberry Pi 5 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (64-bit). The Raspberry Pi Imager writes the SD card. In its OS customisation, set the hostname, your user, your home Wi-Fi and SSH. The installer needs internet. Build the hardware first. Refer to the [hardware guide](docs/hardware/parts.md).
+You need a Raspberry Pi 4, a Raspberry Pi 5 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (64-bit). The Raspberry Pi Imager writes the SD card. In its OS customisation, set the hostname, your user, your home Wi-Fi and SSH. The installer needs internet. Use the "Lite" version without a desktop. If the Pi starts a desktop, the setup changes it to console boot, because the desktop takes the HDMI screen. Build the hardware first. Refer to the [hardware guide](docs/hardware/parts.md).
 
 Run this command on the Pi as your normal user, for example over SSH:
 

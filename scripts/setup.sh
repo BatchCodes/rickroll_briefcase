@@ -408,6 +408,24 @@ ${CONFIG_END}"
   printf 'Updated %s and %s.\n' "${CONFIG_TXT}" "${CMDLINE_TXT}"
 }
 
+disable_desktop() {
+  local default_target
+
+  default_target="$(systemctl get-default 2>/dev/null || true)"
+  if [[ "${default_target}" != "graphical.target" ]]; then
+    return 0
+  fi
+
+  log_step "Desktop"
+  printf 'This Pi starts a desktop. The desktop takes the HDMI screen, so the player cannot use it.\n'
+  if command -v raspi-config >/dev/null 2>&1; then
+    raspi-config nonint do_boot_behaviour B1
+  else
+    systemctl set-default multi-user.target
+  fi
+  printf 'The Pi now starts to the console, without the desktop. The change takes effect at the next boot.\n'
+}
+
 configure_console() {
   if [[ "${KEEP_CONSOLE}" -eq 1 ]]; then
     return 0
@@ -567,6 +585,7 @@ main() {
   add_user_to_groups
   write_env
   configure_boot
+  disable_desktop
   configure_console
   configure_hotspot
   install_permissions
