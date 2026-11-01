@@ -20,6 +20,7 @@ RUNTIME_FILES=(
   "scripts/setup.sh"
   "scripts/write_env.sh"
   "scripts/pi_check.sh"
+  "scripts/update.sh"
 )
 
 usage() {
