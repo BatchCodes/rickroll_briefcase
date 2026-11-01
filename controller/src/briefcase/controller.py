@@ -8,6 +8,10 @@ Rules:
   its start position and muted. Thus an open lid only has to unpause it.
 - All events go through one lock, so transitions never overlap. Each handler
   reads the latest input state, so switch bounce cannot leave a stale state.
+- The screen is on while the lid is open. While the lid is closed, the screen
+  is off when the briefcase is disarmed. When it is armed, the screen turns off
+  after the screen-off delay, unless it is primed until the lid opens. Arming,
+  closing the lid and "prime" start the delay again.
 """
 
 from __future__ import annotations
@@ -81,6 +85,11 @@ class Status:
     resume_remaining_sec: float | None = None
     audio: AudioStatus = AudioStatus.UNKNOWN
     audio_device: str | None = None
+    screen_on: bool = True
+    screen_off_available: bool = False
+    screen_off_enabled: bool = False
+    screen_off_remaining_sec: float | None = None
+    primed_until_opened: bool = False
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -119,6 +128,11 @@ class BriefcaseController:
         self._resume_deadline: float | None = None
         self._audio_watch: asyncio.Task[None] | None = None
         self._audio_failing = False
+        self._screen_on = True
+        self._screen_timer: asyncio.TimerHandle | None = None
+        self._screen_deadline: float | None = None
+        self._primed_until_opened = False
+        self._armed_and_closed: bool | None = None
 
     @property
     def state(self) -> State:
@@ -139,12 +153,20 @@ class BriefcaseController:
             paused=self._paused,
             error=self._error,
             resume_remaining_sec=self._resume_remaining(),
+            screen_on=self._screen_on,
+            screen_off_available=self._display.can_turn_off,
+            screen_off_enabled=self._screen_off_active(),
+            screen_off_remaining_sec=self._remaining(self._screen_deadline),
+            primed_until_opened=self._primed_until_opened,
         )
 
     def _resume_remaining(self) -> float | None:
-        if self._resume_deadline is None or self._loop is None:
+        return self._remaining(self._resume_deadline)
+
+    def _remaining(self, deadline: float | None) -> float | None:
+        if deadline is None or self._loop is None:
             return None
-        return max(0.0, self._resume_deadline - self._loop.time())
+        return max(0.0, deadline - self._loop.time())
 
     async def status_with_position(self) -> Status:
         """The status, with the playback position and the video length."""
@@ -185,6 +207,7 @@ class BriefcaseController:
             )
 
     async def close(self) -> None:
+        self._cancel_screen_timer()
         if self._audio_watch is not None:
             self._audio_watch.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -302,8 +325,7 @@ class BriefcaseController:
             self._prepared = False
             await self._prepare()
             self._state = State.DISARMED
-            if inputs.lid_open:
-                await self._display.on()
+            await self._update_screen()
             await self._player_call(
                 self._player.show_text(
                     f"{index + 1}/{len(names)}  {name}", KNOB_TEXT_MS
@@ -373,6 +395,30 @@ class BriefcaseController:
         await self._run_strict(handler)
         return result["position"]
 
+    async def prime(self, until_opened: bool) -> None:
+        """Turn the screen on, so that the next lid opening starts at once.
+
+        The screen stays on for the screen-off delay, or until the lid opens.
+        """
+
+        async def handler() -> None:
+            if not self._screen_off_active():
+                raise ControllerError(
+                    "The screen does not turn off, so it needs no priming."
+                )
+            if not self._inputs.read().armed:
+                raise ControllerError("Arm the briefcase first.")
+            if until_opened:
+                self._primed_until_opened = True
+            self._start_screen_timer()
+            if until_opened:
+                LOGGER.info("Primed until the lid opens")
+            else:
+                LOGGER.info("Primed for %.0f s", self._remaining(self._screen_deadline))
+            await self._update_screen()
+
+        await self._run_strict(handler)
+
     async def _run_strict(self, handler) -> None:
         """Run a web request. Raise its error to the caller."""
         async with self._lock:
@@ -385,10 +431,10 @@ class BriefcaseController:
             self._cancel_resume_window()
             if self._state is State.PLAYING and self._player.connected:
                 await self._stop_playback()
-            await self._display.off()
             self._shutting_down = True
             self._test_play = False
             self._state = State.SHUTTING_DOWN
+            await self._update_screen()
             LOGGER.info("Ready for the power-off")
 
         await self._run(handler)
@@ -409,6 +455,8 @@ class BriefcaseController:
             if not connected:
                 self._state = State.PLAYER_OFFLINE
                 return
+            # A new mpv starts with its video output on.
+            self._screen_on = True
             await self._refresh()
 
         await self._run(handler)
@@ -421,7 +469,7 @@ class BriefcaseController:
             self._prepared = False
             self._state = State.FINISHED
             self._test_play = False
-            await self._display.off()
+            await self._update_screen()
 
         await self._run(handler)
 
@@ -457,6 +505,12 @@ class BriefcaseController:
         return (inputs.armed and inputs.lid_open) or self._test_play
 
     async def _apply(self) -> None:
+        try:
+            await self._apply_state()
+        finally:
+            await self._update_screen()
+
+    async def _apply_state(self) -> None:
         if self._shutting_down:
             self._state = State.SHUTTING_DOWN
             return
@@ -498,7 +552,6 @@ class BriefcaseController:
         start_sec = self._choose_start(settings, name)
         video = settings.video(name)
         await self._player.set_mute(True)
-        await self._display.off()
         await self._player.preload(
             self._library.path(name),
             start_sec,
@@ -525,6 +578,9 @@ class BriefcaseController:
         self._paused = False
         await self._retry_audio_if_failed()
         await self._player.set_mute(False)
+        # With the screen off, the monitor needs about 2 s to wake. The video
+        # plays at once, so a primed briefcase is never late.
+        self._screen_on = True
         await asyncio.gather(self._player.play(), self._display.on())
         self._state = State.PLAYING
         LOGGER.info("Playing %s", self._current)
@@ -540,7 +596,6 @@ class BriefcaseController:
         await self._player.pause()
         await self._player.set_mute(True)
         await self._save_resume_position()
-        await self._display.off()
         window = self._settings.get().resume_window_sec
         if keep_position and window > 0 and self._loop is not None:
             self._start_resume_window(window)
@@ -549,6 +604,63 @@ class BriefcaseController:
         self._prepared = False
         self._advance()
         LOGGER.info("Stopped %s", self._current)
+
+    def _screen_off_active(self) -> bool:
+        return self._display.can_turn_off and self._settings.get().screen_off_enabled
+
+    def _wants_screen(self, inputs: InputState) -> bool:
+        if self._shutting_down:
+            return False
+        if not self._screen_off_active():
+            self._cancel_screen_timer()
+            self._primed_until_opened = False
+            return True
+        armed_and_closed = inputs.armed and not inputs.lid_open
+        entered = armed_and_closed and self._armed_and_closed is not True
+        self._armed_and_closed = armed_and_closed
+        if not armed_and_closed:
+            self._cancel_screen_timer()
+            self._primed_until_opened = False
+        elif entered:
+            self._start_screen_timer()
+        if self._state is State.PLAYING or self._test_play:
+            return True
+        if not armed_and_closed:
+            # A finished video with the "stop" end action shows a black screen.
+            return inputs.lid_open and self._state is not State.FINISHED
+        return self._primed_until_opened or self._screen_deadline is not None
+
+    async def _update_screen(self) -> None:
+        wanted = self._wants_screen(self._inputs.read())
+        if wanted == self._screen_on:
+            return
+        self._screen_on = wanted
+        LOGGER.info("Screen %s", "on" if wanted else "off")
+        if wanted:
+            await self._display.on()
+        else:
+            await self._display.off()
+
+    def _start_screen_timer(self) -> None:
+        self._cancel_screen_timer()
+        if self._loop is None:
+            return
+        delay = self._settings.get().screen_off_delay_sec
+        self._screen_deadline = self._loop.time() + delay
+        self._screen_timer = self._loop.call_later(
+            delay, lambda: asyncio.ensure_future(self._run(self._end_screen_timer))
+        )
+
+    def _cancel_screen_timer(self) -> None:
+        if self._screen_timer is not None:
+            self._screen_timer.cancel()
+        self._screen_timer = None
+        self._screen_deadline = None
+
+    async def _end_screen_timer(self) -> None:
+        self._screen_timer = None
+        self._screen_deadline = None
+        await self._update_screen()
 
     def _start_resume_window(self, window: float) -> None:
         self._cancel_resume_window()

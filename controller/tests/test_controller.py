@@ -48,7 +48,9 @@ async def test_start_preloads_default_video_paused_at_30_seconds(parts):
     assert controller.state is State.READY
     assert player.calls == [("preload", "a.mp4", 30.0, True)]
     assert player.paused and player.muted
-    assert display.is_on is False
+    # Armed and closed: the screen stays on for the screen-off delay.
+    assert controller.status().screen_on is True
+    assert display.is_on is None
 
 
 async def test_open_lid_plays_immediately_and_close_stops(parts):
@@ -66,7 +68,7 @@ async def test_open_lid_plays_immediately_and_close_stops(parts):
     await controller.inputs_changed()
     assert controller.state is State.READY
     assert player.paused and player.muted
-    assert display.is_on is False
+    assert display.is_on is True
     assert player.calls[-1] == ("preload", "a.mp4", 30.0, True)
 
 
