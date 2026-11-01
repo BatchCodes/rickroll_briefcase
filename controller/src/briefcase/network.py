@@ -274,10 +274,10 @@ class SimulatedBackend:
         return sorted(self.networks)
 
     async def hotspot_ssid(self) -> str | None:
-        return "RICKROLL-BRIEFCASE"
+        return "BRIEFCASE"
 
     async def hostname(self) -> str | None:
-        return "rickroll-briefcase"
+        return "briefcase"
 
     async def start_hotspot(self) -> None:
         self.client = None

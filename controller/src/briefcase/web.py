@@ -96,7 +96,7 @@ def create_app(
     lifespan: Any = None,
 ) -> FastAPI:
     network = network or NetworkController(None, 60)
-    app = FastAPI(title="Rickroll Briefcase", version=__version__, lifespan=lifespan)
+    app = FastAPI(title="Briefcase", version=__version__, lifespan=lifespan)
     templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
     app.mount(
         "/static", StaticFiles(directory=str(PACKAGE_DIR / "static")), name="static"

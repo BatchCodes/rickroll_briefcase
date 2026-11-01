@@ -43,7 +43,7 @@ Open <http://localhost:8080>. Use the "Lid" and "Arm" buttons to simulate the br
 
 ## Quick Start on a Raspberry Pi
 
-You need a Raspberry Pi 4, a Raspberry Pi 5 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (64-bit). The Raspberry Pi Imager writes the SD card. In its OS customisation, set the hostname, your user, your home Wi-Fi and SSH. The installer needs internet. Use the "Lite" version without a desktop. If the Pi starts a desktop, the setup changes it to console boot, because the desktop takes the HDMI screen. Build the hardware first. Refer to the [hardware guide](docs/hardware/parts.md).
+You need a Raspberry Pi 4, a Raspberry Pi 5 or a Raspberry Pi Zero 2 W with Raspberry Pi OS Lite (64-bit). The Raspberry Pi Imager writes the SD card. In its OS customisation, set the hostname to `briefcase`, and set your user, your home Wi-Fi and SSH. The installer needs internet. Use the "Lite" version without a desktop. If the Pi starts a desktop, the setup changes it to console boot, because the desktop takes the HDMI screen. Build the hardware first. Refer to the [hardware guide](docs/hardware/parts.md).
 
 Run this command on the Pi as your normal user, for example over SSH:
 
@@ -75,7 +75,7 @@ For all options, run `curl -fsSL https://raw.githubusercontent.com/BatchCodes/ri
 
 Then do these steps:
 
-1. Connect your phone to the `RICKROLL-BRIEFCASE` Wi-Fi network.
+1. Connect your phone to the `BRIEFCASE` Wi-Fi network.
 2. Open <http://briefcase.lan> in the phone browser. If the name does not work, open <http://10.42.0.1>. Android can show "This network has no internet access". Select "Stay connected", because the briefcase needs no internet.
 3. Upload a video.
 4. Turn on the arm switch and close the lid.

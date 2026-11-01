@@ -33,7 +33,7 @@ def test_index_page(setup):
     client, *_ = setup
     response = client.get("/")
     assert response.status_code == 200
-    assert "Rickroll Briefcase" in response.text
+    assert "<h1>Briefcase</h1>" in response.text
 
 
 def test_healthz_and_status(setup):

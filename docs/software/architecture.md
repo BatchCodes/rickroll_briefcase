@@ -5,7 +5,7 @@ The briefcase software has two Docker containers. They run on Raspberry Pi OS Li
 ```text
 Raspberry Pi
 ├── host
-│   ├── NetworkManager: Wi-Fi access point "RICKROLL-BRIEFCASE"
+│   ├── NetworkManager: Wi-Fi access point "BRIEFCASE"
 │   └── systemd: starts Docker Compose at boot
 └── Docker Compose
     ├── player      mpv, full screen on HDMI, HDMI audio, JSON IPC socket

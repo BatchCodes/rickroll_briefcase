@@ -39,7 +39,7 @@ Usage: sudo $(basename "$0") [options]
 Set up a Raspberry Pi (Raspberry Pi OS Lite, 64-bit) as a Rickroll Briefcase.
 The script is safe to run again.
 
-  --ssid NAME          Wi-Fi network name, for example RICKROLL-BRIEFCASE (default)
+  --ssid NAME          Wi-Fi network name, for example BRIEFCASE (default)
   --password TEXT      WPA2 password, 8 to 63 characters, for example 'never-gonna-9'
                        (the script asks for it if you do not give it)
   --country CODE       Wi-Fi country code, for example DE or GB
@@ -74,7 +74,7 @@ USAGE
 }
 
 parse_args() {
-  SSID="RICKROLL-BRIEFCASE"
+  SSID="BRIEFCASE"
   PASSWORD=""
   COUNTRY=""
   MAKE_HOTSPOT=1

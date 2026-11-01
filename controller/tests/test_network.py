@@ -66,7 +66,7 @@ async def test_client_mode_connects_to_known_network():
     status = await controller.status()
     assert status.mode is Mode.CLIENT
     assert status.connection == "HomeWifi"
-    assert status.hostname == "rickroll-briefcase"
+    assert status.hostname == "briefcase"
 
 
 async def test_client_mode_without_network_in_range_returns_to_hotspot():
