@@ -583,6 +583,86 @@ async function refreshUpdates() {
   }
 }
 
+const SWIPE_MIN_PX = 60;
+const PULL_RELOAD_PX = 80;
+
+// Sliders, text fields and a video table that scrolls sideways need their own drags.
+function ignoresGestures(target) {
+  if (target.closest("input, select, textarea")) return true;
+  const wrap = target.closest(".video-table-wrap");
+  return Boolean(wrap && wrap.scrollWidth > wrap.clientWidth);
+}
+
+function selectedTab() {
+  const button = $('.tabs [aria-selected="true"]');
+  return button ? button.dataset.tab : "status";
+}
+
+// Swipe left or right to change the tab. Pull down at the top of the page to
+// reload it, only in the app, because phone browsers have their own pull-to-refresh.
+function bindGestures() {
+  const indicator = $("#pull-indicator");
+  let start = null;
+  const showPull = (distance) => {
+    indicator.style.opacity = String(Math.min(distance / PULL_RELOAD_PX, 1));
+    indicator.style.transform =
+      `translateY(${Math.min(distance / 2, 60) - 48}px) rotate(${distance * 2}deg)`;
+    indicator.classList.toggle("ready", distance >= PULL_RELOAD_PX);
+  };
+  const reset = () => {
+    start = null;
+    indicator.style.opacity = "";
+    indicator.style.transform = "";
+    indicator.classList.remove("ready");
+  };
+  const isPull = (dx, dy) =>
+    start.atTop && document.body.classList.contains("in-app") && dy > Math.abs(dx);
+
+  document.addEventListener(
+    "touchstart",
+    (event) => {
+      if (event.touches.length !== 1 || ignoresGestures(event.target)) {
+        start = null;
+        return;
+      }
+      const touch = event.touches[0];
+      start = { x: touch.clientX, y: touch.clientY, atTop: window.scrollY <= 0 };
+    },
+    { passive: true },
+  );
+  document.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!start) return;
+      const touch = event.touches[0];
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      if (isPull(dx, dy)) showPull(dy);
+    },
+    { passive: true },
+  );
+  document.addEventListener("touchend", (event) => {
+    if (!start) return;
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    const pulled = isPull(dx, dy) && dy >= PULL_RELOAD_PX;
+    reset();
+    if (pulled) {
+      location.reload();
+      return;
+    }
+    if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < 2 * Math.abs(dy)) return;
+    const tabs = availableTabs();
+    const next = tabs[tabs.indexOf(selectedTab()) + (dx < 0 ? 1 : -1)];
+    if (next) {
+      showTab(next);
+      window.scrollTo(0, 0);
+    }
+  });
+  document.addEventListener("touchcancel", reset);
+}
+
 function setUpNativeApp() {
   const app = window.BriefcaseApp;
   if (!app) return;
@@ -769,6 +849,7 @@ function bindEvents() {
 }
 
 bindEvents();
+bindGestures();
 setUpNativeApp();
 showTab(currentTab());
 refreshUpdates();

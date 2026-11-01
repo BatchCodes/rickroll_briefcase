@@ -30,6 +30,11 @@ An update installs only over an app with the same signing key. So updates work b
 
 To change the network name or the password, open the menu and select "Wi-Fi settings".
 
+In the web app:
+
+- Swipe left or right to go to the next or the previous tab. A swipe that starts on a slider or a text field does not change the tab. This also works in a phone browser.
+- Pull down at the top of the page to reload it.
+
 ## Build the App
 
 You need only Docker. The build runs the unit tests first.

@@ -9,6 +9,7 @@
     <link rel="icon" href="{{ url_for('static', path='icon.svg') }}?v={{ asset_version }}" type="image/svg+xml" />
   </head>
   <body>
+    <div id="pull-indicator" class="pull-indicator" aria-hidden="true">↻</div>
     <svg class="icon-sprite" aria-hidden="true">
       <symbol id="icon-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" /></symbol>
       <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z" /></symbol>
