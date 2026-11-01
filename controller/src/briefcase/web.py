@@ -144,6 +144,12 @@ def create_app(
         data = (await controller.status_with_position()).to_dict()
         data["power"] = power.status() if power else {"state": "no_switch"}
         data["knob"] = {"enabled": knob is not None}
+        settings = store.get()
+        names = library.names()
+        if settings.armed_video in names:
+            data["armed_video"] = settings.armed_video
+        else:
+            data["armed_video"] = names[0] if names else None
         return data
 
     @app.get("/api/settings")

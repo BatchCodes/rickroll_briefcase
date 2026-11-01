@@ -67,14 +67,25 @@
       <section class="card" aria-labelledby="settings-heading">
         <h2 id="settings-heading">Playback</h2>
         <form id="settings-form">
-          <label>
-            Video to play
-            <select id="armed-video" name="armed_video"></select>
-          </label>
+          <div class="video-table-wrap">
+            <table id="video-table" class="video-table">
+              <thead>
+                <tr>
+                  <th scope="col">Video</th>
+                  <th scope="col">Start</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="muted hint">
+            Tap a video to select it. Type a start position, for example 01:05, then
+            press Enter. Leave it empty to use the default start position.
+          </p>
           <label>
             Selection mode
             <select name="selection_mode">
-              <option value="single">Single: always the video above</option>
+              <option value="single">Single: always the selected video</option>
               <option value="cycle">Cycle: the next video each time</option>
               <option value="shuffle">Shuffle: a random video each time</option>
             </select>
@@ -167,10 +178,6 @@
                 <option value="random">Random: one of the cue points</option>
                 <option value="resume">Resume: where it stopped last time</option>
               </select>
-            </label>
-            <label>
-              Start position
-              <input name="start_sec" inputmode="decimal" placeholder="default" />
             </label>
             <label>
               Cue points

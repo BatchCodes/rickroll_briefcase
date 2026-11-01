@@ -287,3 +287,77 @@ h3 {
   min-height: 36px;
   padding: 6px 12px;
 }
+
+.video-table-wrap {
+  overflow-x: auto;
+  margin: 4px 0 8px;
+}
+
+.video-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.video-table th {
+  padding: 6px 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.video-table td {
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.video-table tbody tr {
+  cursor: pointer;
+}
+
+.video-table tr.selected td {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.video-table tr.selected td:first-child {
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.video-table .name-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.video-table .select-mark {
+  flex: none;
+  width: 1.2em;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.video-table .row-name {
+  overflow-wrap: break-word;
+}
+
+.video-table .mode-note {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.video-table td.start-cell {
+  width: 7.5em;
+}
+
+.video-table input {
+  margin: 0;
+  padding: 6px 8px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  margin: 0 0 8px;
+}

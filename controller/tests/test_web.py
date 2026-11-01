@@ -192,3 +192,10 @@ def test_simulated_knob_needs_a_knob(setup):
     assert client.get("/api/status").json()["knob"] == {"enabled": False}
     assert client.post("/api/simulate", json={"knob": 1}).status_code == 404
     assert client.post("/api/simulate", json={"knob": 2}).status_code == 422
+
+
+def test_status_reports_the_selected_video(setup):
+    client, *_ = setup
+    assert client.get("/api/status").json()["armed_video"] == "other.mp4"
+    client.put("/api/settings", json={"armed_video": "rickroll.mp4"})
+    assert client.get("/api/status").json()["armed_video"] == "rickroll.mp4"

@@ -32,6 +32,7 @@ const POWER_LABELS = {
 const $ = (selector, root = document) => root.querySelector(selector);
 
 let lastStatus = null;
+let lastArmedVideo = null;
 let videos = [];
 
 async function api(method, path, body) {
@@ -68,6 +69,10 @@ function showError(message) {
 
 function renderStatus(status) {
   lastStatus = status;
+  if (status.armed_video !== undefined && status.armed_video !== lastArmedVideo) {
+    lastArmedVideo = status.armed_video;
+    refreshAll().catch(() => {});
+  }
   const badge = $("#state-badge");
   badge.textContent = STATE_LABELS[status.state] || status.state;
   badge.className = "badge";
@@ -142,18 +147,119 @@ async function refreshStatus() {
   }
 }
 
+const START_MODE_NOTES = {
+  beginning: "starts at 00:00",
+  random: "random cue point",
+  resume: "resumes",
+};
+
 function renderSettings(settings) {
   const form = $("#settings-form");
-  const select = $("#armed-video");
-  select.replaceChildren(
-    ...videos.map((video) => new Option(video.name, video.name)),
-  );
-  select.value = settings.armed_video || (videos[0] && videos[0].name) || "";
   form.selection_mode.value = settings.selection_mode;
   form.default_start.value = settings.default_start;
   form.resume_window.value = settings.resume_window_sec;
   form.volume.value = settings.volume;
   $("#volume-value").textContent = settings.volume;
+  renderVideoTable(settings);
+}
+
+function renderVideoTable(settings) {
+  const selected = settings.armed_video || (videos[0] && videos[0].name) || null;
+  lastArmedVideo = selected;
+  const body = $("#video-table tbody");
+  if (!videos.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 2;
+    cell.className = "muted";
+    cell.textContent = "No videos yet. Upload one below.";
+    row.append(cell);
+    body.replaceChildren(row);
+    return;
+  }
+  body.replaceChildren(
+    ...videos.map((video) => {
+      const row = document.createElement("tr");
+      const isSelected = video.name === selected;
+      row.classList.toggle("selected", isSelected);
+      row.setAttribute("aria-selected", String(isSelected));
+      row.tabIndex = 0;
+
+      const nameCell = document.createElement("td");
+      const wrap = document.createElement("div");
+      wrap.className = "name-wrap";
+      const mark = document.createElement("span");
+      mark.className = "select-mark";
+      mark.setAttribute("aria-hidden", "true");
+      mark.textContent = isSelected ? "▶" : "";
+      const text = document.createElement("div");
+      const name = document.createElement("span");
+      name.className = "row-name";
+      // A zero-width space after "_", "-" and "." lets long names wrap there.
+      name.textContent = video.name.replace(/([_.-])/g, "$1\u200b");
+      text.append(name);
+      const note = START_MODE_NOTES[video.settings.start_mode];
+      if (note) {
+        const noteElement = document.createElement("span");
+        noteElement.className = "mode-note";
+        noteElement.textContent = note;
+        text.append(noteElement);
+      }
+      wrap.append(mark, text);
+      nameCell.append(wrap);
+
+      const startCell = document.createElement("td");
+      startCell.className = "start-cell";
+      const input = document.createElement("input");
+      input.inputMode = "decimal";
+      input.setAttribute("aria-label", `Start position of ${video.name}`);
+      input.placeholder =
+        video.settings.start_mode === "fixed"
+          ? settings.default_start
+          : video.settings.start_mode === "beginning"
+            ? "00:00"
+            : "–";
+      input.value =
+        video.settings.start_sec === null ? "" : formatTime(video.settings.start_sec);
+      const original = input.value;
+      const save = async () => {
+        if (input.value.trim() === original) return;
+        const result = await run(() =>
+          api("PUT", `/api/videos/${encodeURIComponent(video.name)}/settings`, {
+            start_mode: "fixed",
+            start_sec: input.value.trim() || null,
+          }),
+        );
+        if (!result) input.value = original;
+        await refreshAll();
+      };
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          input.blur();
+        }
+      });
+      input.addEventListener("change", save);
+      input.addEventListener("click", (event) => event.stopPropagation());
+      startCell.append(input);
+
+      const select = async () => {
+        if (isSelected) return;
+        await run(() => api("PUT", "/api/settings", { armed_video: video.name }));
+        await refreshAll();
+      };
+      row.addEventListener("click", select);
+      row.addEventListener("keydown", (event) => {
+        if (event.target === row && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          select();
+        }
+      });
+
+      row.append(nameCell, startCell);
+      return row;
+    }),
+  );
 }
 
 function renderVideos() {
@@ -180,8 +286,6 @@ function renderVideos() {
       const form = $(".video-form", item);
       const settings = video.settings;
       form.start_mode.value = settings.start_mode;
-      form.start_sec.value =
-        settings.start_sec === null ? "" : formatTime(settings.start_sec);
       form.cue_points_sec.value = settings.cue_points_sec.map(formatTime).join(", ");
       form.end_action.value = settings.end_action;
 
@@ -190,7 +294,6 @@ function renderVideos() {
         await run(() =>
           api("PUT", `/api/videos/${encodeURIComponent(video.name)}/settings`, {
             start_mode: form.start_mode.value,
-            start_sec: form.start_sec.value.trim() || null,
             cue_points_sec: form.cue_points_sec.value,
             end_action: form.end_action.value,
           }),
@@ -432,7 +535,6 @@ function bindEvents() {
       resume_window: form.resume_window.value.trim() || "15",
       volume: Number(form.volume.value),
     };
-    if (form.armed_video.value) body.armed_video = form.armed_video.value;
     const settings = await run(() => api("PUT", "/api/settings", body));
     if (settings) await refreshAll();
   });
