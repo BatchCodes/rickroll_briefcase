@@ -75,7 +75,7 @@ Each setting has a default. The briefcase operates correctly with no configurati
 
 If a start position is after the end of a short video, the video starts at `00:00`.
 
-When the lid closes, the video pauses at its position. If the lid opens again within the resume window, the video continues from that position. After the window, the briefcase loads the video at its start position again, and moves to the next video in the `cycle` and `shuffle` modes. A settings change ends the window.
+When the lid closes, the video pauses at its position. If the lid opens again within the resume window, the video continues from that position. After the window, the briefcase loads the video at its start position again, and moves to the next video in the `cycle` and `shuffle` modes. A settings change ends the window. A disarm also ends the window. Thus, after you disarm and arm the briefcase again, the next opening starts at the start position.
 
 In the `cycle` and `shuffle` modes, the briefcase changes to the next video when the lid closes. The `shuffle` mode does not play the same video two times in sequence.
 

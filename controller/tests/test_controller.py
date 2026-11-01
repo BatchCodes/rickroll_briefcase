@@ -406,6 +406,46 @@ async def test_reopen_after_resume_window_starts_again(parts):
     assert player.current_position == 30.0
 
 
+async def test_disarm_and_rearm_starts_again_within_resume_window(parts):
+    inputs, player, _, store, controller = parts
+    store.replace(Settings(resume_window_sec=10))
+    await controller.start()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    player.current_position = 47.0
+
+    inputs.set(lid_open=False)
+    await controller.inputs_changed()
+    assert controller.status().resume_remaining_sec is not None
+    inputs.set(armed=False)
+    await controller.inputs_changed()
+    assert controller.state is State.DISARMED
+    assert controller.status().resume_remaining_sec is None
+    assert player.calls[-1] == ("preload", "a.mp4", 30.0, True)
+
+    inputs.set(armed=True)
+    await controller.inputs_changed()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    assert controller.state is State.PLAYING
+    assert player.current_position == 30.0
+
+
+async def test_disarm_while_open_starts_again_at_once(parts):
+    inputs, player, _, store, controller = parts
+    store.replace(Settings(resume_window_sec=10))
+    await controller.start()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    player.current_position = 47.0
+
+    inputs.set(armed=False)
+    await controller.inputs_changed()
+    assert controller.state is State.DISARMED
+    assert controller.status().resume_remaining_sec is None
+    assert player.calls[-1] == ("preload", "a.mp4", 30.0, True)
+
+
 async def test_resume_window_zero_starts_again_at_once(parts):
     inputs, player, _, store, controller = parts
     store.replace(Settings(resume_window_sec=0))

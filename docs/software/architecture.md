@@ -36,7 +36,7 @@ The `controller` container runs one Python process with these parts:
 
 ## Instant Start
 
-A cold start of a video player takes too long for the gag. Thus the controller always keeps the next video loaded in `mpv`, **paused at its start position and muted**. When a person opens the lid, the controller only has to unmute and unpause. When the lid closes, the controller pauses and mutes the video. If the lid opens again within the resume window (15 s by default), the video continues. After the window, the controller loads the next video again at its start position.
+A cold start of a video player takes too long for the gag. Thus the controller always keeps the next video loaded in `mpv`, **paused at its start position and muted**. When a person opens the lid, the controller only has to unmute and unpause. When the lid closes, the controller pauses and mutes the video. If the lid opens again within the resume window (15 s by default), the video continues. After the window, or when a person disarms the briefcase, the controller loads the next video again at its start position.
 
 ## States
 

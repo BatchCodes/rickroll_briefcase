@@ -415,11 +415,15 @@ class BriefcaseController:
         if self._state is State.PLAYING:
             if wants_play:
                 return
-            await self._stop_playback(keep_position=True)
+            # Only a closed lid keeps the position. A disarm ends the visit.
+            await self._stop_playback(keep_position=inputs.armed)
         elif self._state is State.FINISHED:
             if wants_play:
                 return
             self._advance()
+        if not inputs.armed and self._resume_deadline is not None:
+            LOGGER.info("Disarmed. Loading the start position")
+            self._drop_resume_position()
 
         if not self._prepared:
             await self._prepare()
@@ -495,11 +499,14 @@ class BriefcaseController:
     async def _end_resume_window(self) -> None:
         if self._resume_deadline is None or self._state is State.PLAYING:
             return
-        self._cancel_resume_window()
         LOGGER.info("The resume window ended. Loading the start position")
+        self._drop_resume_position()
+        await self._apply()
+
+    def _drop_resume_position(self) -> None:
+        self._cancel_resume_window()
         self._prepared = False
         self._advance()
-        await self._apply()
 
     async def _save_resume_position(self) -> None:
         if self._current is None:
