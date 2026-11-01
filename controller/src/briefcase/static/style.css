@@ -225,11 +225,34 @@ progress {
 
 .video summary {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 4px 12px;
+  gap: 12px;
   padding: 12px 0;
   cursor: pointer;
+  list-style: none;
+}
+
+.video summary::-webkit-details-marker {
+  display: none;
+}
+
+.video-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.expand-arrow {
+  flex: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  transition: transform 0.15s;
+}
+
+.video details[open] .expand-arrow {
+  transform: rotate(180deg);
 }
 
 .video-name {
