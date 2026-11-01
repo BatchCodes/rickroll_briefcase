@@ -45,6 +45,7 @@ docker compose up -d
 | `BRIEFCASE_KNOB_DT_PIN`           | empty         | the BCM GPIO number of the knob `DT` pin, normally `23`                                                                                                                                                |
 | `BRIEFCASE_KNOB_STEPS_PER_DETENT` | `1`           | the encoder steps for one click of the knob. The controller counts one step for each half quadrature cycle. Set `2` for a knob that has a click only at each full cycle, if one click moves two videos |
 | `BRIEFCASE_KNOB_INVERT`           | `false`       | `true` swaps the turning direction                                                                                                                                                                     |
+| `BRIEFCASE_UPDATES_ENABLED`       | `true`        | `true` shows "Update briefcase" on the Updates tab. Laptop mode sets `false`                                                                                                                           |
 | `BRIEFCASE_LOG_LEVEL`             | `INFO`        | `DEBUG`, `INFO`, `WARNING` or `ERROR`                                                                                                                                                                  |
 
 Both switches connect their GPIO pin to ground when they are closed. The controller uses the internal pull-up resistors. With the default wiring, the lid is closed when the lid pin is low, and the briefcase is armed when the arm pin is low. To invert a switch, set `BRIEFCASE_LID_CLOSED_WHEN_LOW=false` or `BRIEFCASE_ARMED_WHEN_LOW=false` in `.env`. For the lid sensor, `setup.sh --lid-closed-when-high` writes this setting, and later runs keep it.
@@ -60,6 +61,14 @@ Both switches connect their GPIO pin to ground when they are closed. The control
 ### Stored Set-up Options
 
 `scripts/setup.sh` stores its options in `.env`, with the prefix `BRIEFCASE_SETUP_`: the network name, the country, and the hotspot, power-save, console, tools and build choices. A later run without an option uses the stored value, so an update from the phone keeps the options of the first installation. Each option has a flag to change it again, for example `--no-power-save` after `--power-save`. An existing access point keeps its password, unless you give `--password`.
+
+### Updates From the Web App
+
+"Update briefcase" on the Updates tab writes `data/update/request.json`. The systemd unit `rickroll-briefcase-update.path`, which `setup.sh` installs, then starts `scripts/update.sh` as root. The script connects to a known Wi-Fi network if the Pi has no internet, installs the selected version (the newest release, the newest pre-release, or `main`), and goes back to the hotspot. It writes its progress to `data/update/status.json`, and the Updates tab shows it. The full log is in the journal:
+
+```bash
+journalctl -u rickroll-briefcase-update
+```
 
 ## Playback Settings (Web App)
 

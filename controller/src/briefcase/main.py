@@ -20,6 +20,7 @@ from briefcase.mpv import MpvClient, MpvPlayer
 from briefcase.network import create_network
 from briefcase.power import create_power
 from briefcase.settings import SettingsStore
+from briefcase.updates import UpdateManager
 from briefcase.web import create_app
 
 LOGGER = logging.getLogger("briefcase")
@@ -35,6 +36,9 @@ def build_app(config: AppConfig) -> FastAPI:
         inputs, player, create_display(config), library, store
     )
     network = create_network(config)
+    updates = UpdateManager(
+        config.update_dir, config.updates_enabled, config.installed_version
+    )
     power = create_power(config, inputs, controller)
     knob = create_knob(config)
     if knob is not None:
@@ -65,6 +69,7 @@ def build_app(config: AppConfig) -> FastAPI:
         store,
         inputs,
         network=network,
+        updates=updates,
         power=power,
         knob=knob,
         lifespan=lifespan,

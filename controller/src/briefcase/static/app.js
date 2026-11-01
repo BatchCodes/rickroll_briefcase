@@ -32,7 +32,18 @@ const POWER_LABELS = {
 
 const $ = (selector, root = document) => root.querySelector(selector);
 
-const TAB_NAMES = ["status", "playback", "upload", "wifi"];
+const TAB_NAMES = ["status", "playback", "upload", "wifi", "updates"];
+const UPDATE_POLL_MS = 3000;
+
+const UPDATE_STATE_LABELS = {
+  starting: "Starting",
+  connecting: "Connecting to Wi-Fi",
+  checking: "Checking GitHub",
+  downloading: "Downloading",
+  installing: "Installing",
+  done: "Done",
+  failed: "Failed",
+};
 // Old fragments from bookmarks, mapped to the current tab names.
 const TAB_ALIASES = { videos: "upload" };
 
@@ -530,7 +541,52 @@ async function uploadAll(files) {
   await refreshAll();
 }
 
+function renderUpdates(data) {
+  const available = Boolean(data.available);
+  $("#update-controls").hidden = !available;
+  $("#updates-unavailable").hidden = available;
+  $("#update-installed").textContent = data.installed_version || "–";
+  const status = data.status;
+  let stateText = status ? UPDATE_STATE_LABELS[status.state] || status.state : "–";
+  if (data.pending) stateText = "Requested";
+  $("#update-state").textContent = stateText;
+  const message = $("#update-message");
+  message.hidden = !(status && status.message);
+  message.textContent = status ? `${status.message} (${status.updated_at || ""})` : "";
+  $("#update-button").disabled = Boolean(data.running);
+}
+
+async function refreshUpdates() {
+  try {
+    renderUpdates(await api("GET", "/api/updates"));
+  } catch (error) {
+    // The briefcase restarts during an update. Try again at the next poll.
+  }
+}
+
+function setUpNativeApp() {
+  const app = window.BriefcaseApp;
+  if (!app) return;
+  $("#app-update-native").hidden = false;
+  $("#app-update-web").hidden = true;
+  try {
+    $("#app-version").textContent = app.version();
+  } catch (error) {
+    $("#app-version").textContent = "–";
+  }
+  $("#app-update-button").addEventListener("click", () => app.checkForUpdates());
+}
+
 function bindEvents() {
+  $("#update-button").addEventListener("click", async () => {
+    const target = $("#update-target").value;
+    const text =
+      "Update the briefcase now? It connects to a known Wi-Fi network, so your phone " +
+      "loses the BRIEFCASE Wi-Fi for a few minutes.";
+    if (!confirm(text)) return;
+    const result = await run(() => api("POST", "/api/updates", { target }));
+    if (result) renderUpdates(result);
+  });
   for (const button of document.querySelectorAll(".tabs [data-tab]")) {
     button.addEventListener("click", () => {
       showTab(button.dataset.tab);
@@ -687,7 +743,12 @@ function bindEvents() {
 }
 
 bindEvents();
+setUpNativeApp();
 showTab(currentTab());
+refreshUpdates();
+setInterval(() => {
+  if (currentTab() === "updates") refreshUpdates();
+}, UPDATE_POLL_MS);
 refreshAll().catch((error) => showError(error.message));
 setInterval(refreshStatus, STATUS_POLL_MS);
 setInterval(refreshNetwork, 5000);

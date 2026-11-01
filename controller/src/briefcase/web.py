@@ -29,6 +29,7 @@ from briefcase.settings import (
     format_time,
     parse_time,
 )
+from briefcase.updates import UpdateError, UpdateManager
 
 PACKAGE_DIR = Path(__file__).parent
 RESERVED_FREE_BYTES = 200 * 1024**2
@@ -71,6 +72,10 @@ class ModeRequest(BaseModel):
     mode: Literal["hotspot", "client"]
 
 
+class UpdateRequest(BaseModel):
+    target: Literal["release", "prerelease", "main"] = "release"
+
+
 class AddNetworkRequest(BaseModel):
     ssid: str
     password: str = ""
@@ -107,6 +112,7 @@ def create_app(
     store: SettingsStore,
     inputs: Inputs,
     network: NetworkController | None = None,
+    updates: UpdateManager | None = None,
     power: PowerManager | None = None,
     knob: Knob | None = None,
     lifespan: Any = None,
@@ -354,6 +360,21 @@ def create_app(
         except NetworkError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         return (await network.status()).to_dict()
+
+    @app.get("/api/updates")
+    async def updates_status() -> dict[str, Any]:
+        if updates is None:
+            return {"available": False, "running": False, "status": None}
+        return updates.status()
+
+    @app.post("/api/updates")
+    async def request_update(body: UpdateRequest) -> dict[str, Any]:
+        if updates is None:
+            raise HTTPException(status_code=409, detail="Updates are not available.")
+        try:
+            return updates.request(body.target)
+        except UpdateError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
 
     @app.post("/api/simulate")
     async def simulate(body: SimulateRequest) -> dict[str, Any]:

@@ -426,3 +426,7 @@ h3 {
   padding: 0;
   accent-color: var(--accent);
 }
+
+a {
+  color: var(--accent);
+}

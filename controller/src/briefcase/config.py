@@ -65,6 +65,9 @@ class AppConfig:
     hotspot_connection: str = "briefcase-hotspot"
     wifi_interface: str = "wlan0"
     network_fallback_sec: float = 60.0
+    update_dir: Path = Path("/data/update")
+    updates_enabled: bool = False
+    installed_version: str = "unknown"
     power_switch_pin: int | None = None
     power_on_when_low: bool = True
     power_off_delay_sec: float = 2.0
@@ -117,6 +120,9 @@ class AppConfig:
             hotspot_connection=_env("HOTSPOT_CONNECTION", "briefcase-hotspot"),
             wifi_interface=_env("WIFI_INTERFACE", "wlan0"),
             network_fallback_sec=float(_env("NETWORK_FALLBACK_SEC", "60")),
+            update_dir=Path(_env("UPDATE_DIR", "/data/update")),
+            updates_enabled=_env_bool("UPDATES_ENABLED", False),
+            installed_version=_env("INSTALLED_VERSION", "unknown"),
             power_switch_pin=_env_optional_int("POWER_SWITCH_PIN"),
             power_on_when_low=_env_bool("POWER_ON_WHEN_LOW", True),
             power_off_delay_sec=float(_env("POWER_OFF_DELAY_SEC", "2")),

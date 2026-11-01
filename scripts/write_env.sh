@@ -70,7 +70,8 @@ write_env() {
   install -d -o "${user_id}" -g "${group_id_value}" \
     "${DATA_DIR}" \
     "${DATA_DIR}/videos" \
-    "${DATA_DIR}/config"
+    "${DATA_DIR}/config" \
+    "${DATA_DIR}/update"
 
   chown "${user_id}:${group_id_value}" "${ENV_FILE}"
   printf 'Wrote %s for the user %s.\n' "${ENV_FILE}" "${user_name}"

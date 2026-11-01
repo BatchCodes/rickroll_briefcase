@@ -220,3 +220,10 @@ def test_status_reports_the_selected_video(setup):
     assert client.get("/api/status").json()["armed_video"] == "other.mp4"
     client.put("/api/settings", json={"armed_video": "rickroll.mp4"})
     assert client.get("/api/status").json()["armed_video"] == "rickroll.mp4"
+
+
+def test_updates_api_without_manager(setup):
+    client, *_ = setup
+    assert client.get("/api/updates").json()["available"] is False
+    assert client.post("/api/updates", json={"target": "release"}).status_code == 409
+    assert client.post("/api/updates", json={"target": "nightly"}).status_code == 422

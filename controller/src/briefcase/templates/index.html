@@ -24,6 +24,7 @@
       <button type="button" role="tab" data-tab="playback" aria-selected="false">Playback</button>
       <button type="button" role="tab" data-tab="upload" aria-selected="false">Upload</button>
       <button type="button" role="tab" data-tab="wifi" aria-selected="false" hidden>Wi-Fi</button>
+      <button type="button" role="tab" data-tab="updates" aria-selected="false">Updates</button>
     </nav>
 
     <main>
@@ -178,6 +179,51 @@
             <button type="submit" class="secondary">Add a Wi-Fi network</button>
           </div>
         </form>
+      </section>
+      <section class="card" data-tab="updates" aria-labelledby="updates-heading">
+        <h2 id="updates-heading">Updates</h2>
+
+        <h3>Briefcase</h3>
+        <dl class="facts">
+          <div><dt>Installed</dt><dd id="update-installed">–</dd></div>
+          <div><dt>Update</dt><dd id="update-state">–</dd></div>
+        </dl>
+        <p id="update-message" class="muted" hidden></p>
+        <div id="update-controls">
+          <label>
+            Version to install
+            <select id="update-target">
+              <option value="release">Newest release</option>
+              <option value="prerelease">Newest release or pre-release</option>
+              <option value="main">Latest main (for tests)</option>
+            </select>
+          </label>
+          <div class="buttons">
+            <button id="update-button" type="button">Update briefcase</button>
+          </div>
+          <p class="muted">
+            The briefcase connects to a known Wi-Fi network for a few minutes. Your phone
+            loses the BRIEFCASE Wi-Fi during the update. Connect again when the update is
+            done.
+          </p>
+        </div>
+        <p id="updates-unavailable" class="muted" hidden>
+          Updates are not available on this system, for example in laptop mode.
+        </p>
+
+        <h3>App</h3>
+        <div id="app-update-native" hidden>
+          <p class="muted">Installed app version: <span id="app-version">–</span></p>
+          <div class="buttons">
+            <button id="app-update-button" type="button" class="secondary">Update app</button>
+          </div>
+        </div>
+        <p id="app-update-web" class="muted">
+          Get the Briefcase Android app from the
+          <a href="https://github.com/BatchCodes/rickroll_briefcase/releases/latest">newest release</a>
+          on GitHub (the file <code>briefcase-vX.Y.Z.apk</code>). This needs an internet
+          connection.
+        </p>
       </section>
     </main>
 
