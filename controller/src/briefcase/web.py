@@ -41,6 +41,8 @@ class GlobalSettingsUpdate(BaseModel):
     default_start: str | float | None = None
     volume: int | None = None
     resume_window: str | float | None = None
+    screen_off_enabled: bool | None = None
+    screen_off_delay: str | float | None = None
 
 
 class VolumeRequest(BaseModel):
@@ -57,6 +59,10 @@ class PlayRequest(BaseModel):
 
 class PauseRequest(BaseModel):
     paused: bool
+
+
+class PrimeRequest(BaseModel):
+    until_opened: bool = False
 
 
 class SeekRequest(BaseModel):
@@ -147,6 +153,8 @@ def create_app(
             "default_start_sec": settings.default_start_sec,
             "volume": settings.volume,
             "resume_window_sec": settings.resume_window_sec,
+            "screen_off_enabled": settings.screen_off_enabled,
+            "screen_off_delay_sec": settings.screen_off_delay_sec,
         }
 
     @app.get("/", response_class=HTMLResponse)
@@ -199,6 +207,10 @@ def create_app(
                 settings.default_start_sec = parse_time(update.default_start)
             if update.resume_window is not None:
                 settings.resume_window_sec = parse_time(update.resume_window)
+            if update.screen_off_enabled is not None:
+                settings.screen_off_enabled = update.screen_off_enabled
+            if update.screen_off_delay is not None:
+                settings.screen_off_delay_sec = parse_time(update.screen_off_delay)
             if update.volume is not None:
                 if not 0 <= update.volume <= 100:
                     raise ValueError("The volume must be from 0 to 100.")
@@ -306,6 +318,14 @@ def create_app(
     async def pause(body: PauseRequest) -> dict[str, Any]:
         try:
             await controller.set_paused(body.paused)
+        except ControllerError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return (await controller.status_with_position()).to_dict()
+
+    @app.post("/api/screen/prime")
+    async def prime_screen(body: PrimeRequest) -> dict[str, Any]:
+        try:
+            await controller.prime(body.until_opened)
         except ControllerError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
         return (await controller.status_with_position()).to_dict()

@@ -523,6 +523,11 @@ body.in-app > header {
   grid-column: 1 / -1;
 }
 
+/* The screen fact and the power switch share the second row. */
+.status-facts #screen-fact:not([hidden]) + #power-fact {
+  grid-column: 2 / -1;
+}
+
 .update-available {
   margin: 8px 0;
   padding: 8px 10px;

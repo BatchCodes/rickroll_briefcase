@@ -40,6 +40,7 @@
           <div><dt>Arm</dt><dd id="arm-state">–</dd></div>
           <div><dt>Player</dt><dd id="player-state">–</dd></div>
           <div><dt>Sound</dt><dd id="audio-state">–</dd></div>
+          <div id="screen-fact" hidden><dt>Screen</dt><dd id="screen-state">–</dd></div>
           <div id="power-fact" hidden><dt>Power switch</dt><dd id="power-state">–</dd></div>
         </dl>
         <p id="power-message" class="error" hidden></p>
@@ -57,6 +58,13 @@
           <button id="stop-button" type="button" class="icon secondary" aria-label="Stop" title="Stop">
             <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-stop" /></svg>
           </button>
+        </div>
+        <div id="prime-tools" hidden>
+          <p id="screen-message" class="muted"></p>
+          <div class="buttons">
+            <button id="prime-button" type="button" class="secondary">Prime</button>
+            <button id="prime-open-button" type="button" class="secondary">Prime until opened</button>
+          </div>
         </div>
         <label class="status-volume">
           Volume <output id="status-volume-value">80</output>
@@ -126,6 +134,23 @@
             Resume window in seconds (0 turns it off)
             <input name="resume_window" inputmode="decimal" placeholder="15" />
           </label>
+          <div id="screen-off-settings" hidden>
+            <label>
+              Screen while the lid is closed
+              <select name="screen_off_enabled">
+                <option value="true">Turns off: saves power</option>
+                <option value="false">Stays on: always instant</option>
+              </select>
+            </label>
+            <label>
+              Screen-off delay when armed, in seconds
+              <input name="screen_off_delay" inputmode="decimal" placeholder="60" />
+            </label>
+            <p class="muted">
+              A monitor that is off needs about 2 s to show the video. Arm the briefcase
+              again, or use "Prime" on the Status tab, to keep the screen on for the delay.
+            </p>
+          </div>
           <label>
             Volume <output id="volume-value">80</output>
             <input name="volume" type="range" min="0" max="100" step="1" />

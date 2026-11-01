@@ -184,7 +184,7 @@ function renderStatus(status) {
     status.audio === "failed"
       ? `The player cannot open the sound device ${status.audio_device || ""}. ` +
         "The briefcase tries again every 5 s. Make sure that the monitor is on " +
-        "and that the HDMI cable is in HDMI 0."
+        "and that the HDMI cable is connected."
       : "";
 
   const playing = status.state === "playing";
@@ -205,6 +205,8 @@ function renderStatus(status) {
     button.disabled = !playing;
   }
   showError(status.error);
+
+  renderScreen(status);
 
   const power = status.power || { state: "no_switch" };
   const hasPower = power.state !== "no_switch";
@@ -235,6 +237,27 @@ function renderStatus(status) {
   $("#sim-arm").textContent = status.armed ? "Disarm" : "Arm";
 }
 
+function renderScreen(status) {
+  const available = Boolean(status.screen_off_available);
+  $("#screen-off-settings").hidden = !available;
+  $("#screen-fact").hidden = !status.screen_off_enabled;
+  $("#screen-state").textContent = status.screen_on ? "On" : "Off";
+  setFactTone("#screen-state", status.screen_on ? "good" : null);
+
+  // Priming only matters while the briefcase is armed and closed.
+  const canPrime = status.screen_off_enabled && status.armed && !status.lid_open;
+  $("#prime-tools").hidden = !canPrime;
+  let text = "";
+  if (status.primed_until_opened) {
+    text = "Primed: the screen stays on until the lid opens.";
+  } else if (status.screen_off_remaining_sec !== null && status.screen_off_remaining_sec !== undefined) {
+    text = `Primed: the screen turns off in ${Math.ceil(status.screen_off_remaining_sec)} s.`;
+  } else if (!status.screen_on) {
+    text = "The screen is off. When the lid opens, the video starts, and the monitor needs about 2 s to show it.";
+  }
+  $("#screen-message").textContent = text;
+}
+
 function setPlayButton(action) {
   const button = $("#play-button");
   const label = action === "pause" ? "Pause" : lastStatus.paused ? "Resume" : "Play";
@@ -263,6 +286,8 @@ function renderSettings(settings) {
   form.selection_mode.value = settings.selection_mode;
   form.default_start.value = settings.default_start;
   form.resume_window.value = settings.resume_window_sec;
+  form.screen_off_enabled.value = String(settings.screen_off_enabled);
+  form.screen_off_delay.value = settings.screen_off_delay_sec;
   if (Date.now() - lastVolumeInput > VOLUME_IDLE_MS) showVolume(settings.volume);
   renderVideoTable(settings);
 }
@@ -876,6 +901,16 @@ function bindEvents() {
       renderStatus(status);
     }),
   );
+  $("#prime-button").addEventListener("click", () =>
+    run(async () =>
+      renderStatus(await api("POST", "/api/screen/prime", { until_opened: false })),
+    ),
+  );
+  $("#prime-open-button").addEventListener("click", () =>
+    run(async () =>
+      renderStatus(await api("POST", "/api/screen/prime", { until_opened: true })),
+    ),
+  );
   $("#stop-button").addEventListener("click", () =>
     run(async () => renderStatus(await api("POST", "/api/play", { active: false }))),
   );
@@ -969,6 +1004,8 @@ function bindEvents() {
       selection_mode: form.selection_mode.value,
       default_start: form.default_start.value.trim() || "00:30",
       resume_window: form.resume_window.value.trim() || "15",
+      screen_off_enabled: form.screen_off_enabled.value === "true",
+      screen_off_delay: form.screen_off_delay.value.trim() || "60",
     };
     const settings = await run(() => api("PUT", "/api/settings", body));
     if (settings) await refreshAll();

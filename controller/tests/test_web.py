@@ -229,3 +229,32 @@ def test_updates_api_without_manager(setup):
     assert client.get("/api/updates").json()["available"] is False
     assert client.post("/api/updates", json={"target": "release"}).status_code == 409
     assert client.post("/api/updates", json={"target": "nightly"}).status_code == 422
+
+
+def test_screen_off_settings(setup):
+    client, *_ = setup
+    body = client.get("/api/settings").json()
+    assert body["screen_off_enabled"] is True
+    assert body["screen_off_delay_sec"] == 60.0
+
+    body = client.put(
+        "/api/settings", json={"screen_off_enabled": False, "screen_off_delay": "1:30"}
+    ).json()
+    assert body["screen_off_enabled"] is False
+    assert body["screen_off_delay_sec"] == 90.0
+    response = client.put("/api/settings", json={"screen_off_delay": "x"})
+    assert response.status_code == 400
+
+
+def test_prime_api(setup):
+    client, *_ = setup
+    status = client.get("/api/status").json()
+    assert status["screen_off_available"] is True
+    assert status["screen_on"] is True
+
+    status = client.post("/api/screen/prime", json={"until_opened": True}).json()
+    assert status["primed_until_opened"] is True
+    assert status["screen_off_remaining_sec"] > 0
+
+    client.post("/api/simulate", json={"armed": False})
+    assert client.post("/api/screen/prime", json={}).status_code == 409
