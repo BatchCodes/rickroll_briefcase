@@ -7,6 +7,7 @@ from fakes import FakeDisplay, FakePlayer
 from briefcase.controller import BriefcaseController, ControllerError, State
 from briefcase.inputs import SimulatedInputs
 from briefcase.library import Library
+from briefcase.mpv import AudioStatus
 from briefcase.settings import Settings, SettingsStore
 
 DELAY = 0.05
@@ -229,3 +230,34 @@ async def test_a_new_player_turns_the_screen_off_again(parts):
 
     await controller._on_player_connection(True)
     assert display.is_on is False
+
+
+async def test_the_sound_is_checked_often_after_a_wake(parts):
+    inputs, display, _, controller = parts
+    player = controller._player
+    await controller.start()
+    await change(controller, inputs, armed=True)
+    await wait_for_delay()
+    assert display.is_on is False
+
+    # HDMI sound fails until the HDMI output is active again.
+    player.audio = AudioStatus.FAILED
+    player.audio_after_retry = AudioStatus.FAILED
+    await change(controller, inputs, lid_open=True)
+    assert controller.state is State.PLAYING
+    player.audio_after_retry = AudioStatus.OK
+
+    await asyncio.sleep(0.7)
+    assert player.audio is AudioStatus.OK
+    await controller.close()
+
+
+async def test_the_sound_status_is_hidden_while_the_screen_is_off(parts):
+    _, display, _, controller = parts
+    player = controller._player
+    player.audio = AudioStatus.FAILED
+    await controller.start()
+    assert display.is_on is False
+
+    status = await controller.status_with_position()
+    assert status.audio is AudioStatus.UNKNOWN

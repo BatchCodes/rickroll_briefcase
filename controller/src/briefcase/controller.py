@@ -40,6 +40,10 @@ LOGGER = logging.getLogger(__name__)
 
 RETRY_DELAY_SEC = 5.0
 AUDIO_CHECK_SEC = 5.0
+# After the screen wakes, check the sound often, because HDMI sound only works
+# again when the HDMI output is active.
+AUDIO_WAKE_CHECK_SEC = 0.5
+AUDIO_WAKE_TIMEOUT_SEC = 5.0
 KNOB_TEXT_MS = 3000
 
 
@@ -133,6 +137,7 @@ class BriefcaseController:
         self._screen_deadline: float | None = None
         self._primed_until_opened = False
         self._armed_and_closed: bool | None = None
+        self._audio_wake: asyncio.Task[None] | None = None
 
     @property
     def state(self) -> State:
@@ -180,7 +185,9 @@ class BriefcaseController:
             LOGGER.debug("Cannot read the playback position")
         audio, audio_device = AudioStatus.UNKNOWN, None
         try:
-            audio, audio_device = await self._player.audio_status()
+            # With the screen off, HDMI sound fails on purpose. Do not report it.
+            if self._screen_on:
+                audio, audio_device = await self._player.audio_status()
         except MpvError:
             LOGGER.debug("Cannot read the sound status")
         info = self._library.probe(self._current) if self._current else None
@@ -208,6 +215,8 @@ class BriefcaseController:
 
     async def close(self) -> None:
         self._cancel_screen_timer()
+        if self._audio_wake is not None:
+            self._audio_wake.cancel()
         if self._audio_watch is not None:
             self._audio_watch.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -217,8 +226,18 @@ class BriefcaseController:
     async def _watch_audio(self, interval_sec: float) -> None:
         while True:
             await asyncio.sleep(interval_sec)
-            if self._player.connected:
+            # HDMI sound cannot work while the screen is off.
+            if self._player.connected and self._screen_on:
                 await self._retry_audio_if_failed()
+
+    async def _watch_audio_after_wake(self) -> None:
+        elapsed = 0.0
+        while elapsed < AUDIO_WAKE_TIMEOUT_SEC and self._screen_on:
+            await asyncio.sleep(AUDIO_WAKE_CHECK_SEC)
+            elapsed += AUDIO_WAKE_CHECK_SEC
+            await self._retry_audio_if_failed()
+            if not self._audio_failing:
+                return
 
     async def _retry_audio_if_failed(self) -> None:
         # The HDMI audio open fails (error 524 on a Pi) while the HDMI output is
@@ -580,8 +599,11 @@ class BriefcaseController:
         await self._player.set_mute(False)
         # With the screen off, the monitor needs about 2 s to wake. The video
         # plays at once, so a primed briefcase is never late.
+        woke = not self._screen_on
         self._screen_on = True
         await asyncio.gather(self._player.play(), self._display.on())
+        if woke:
+            self._start_audio_wake_watch()
         self._state = State.PLAYING
         LOGGER.info("Playing %s", self._current)
 
@@ -638,8 +660,16 @@ class BriefcaseController:
         LOGGER.info("Screen %s", "on" if wanted else "off")
         if wanted:
             await self._display.on()
+            self._start_audio_wake_watch()
         else:
             await self._display.off()
+
+    def _start_audio_wake_watch(self) -> None:
+        if self._audio_wake is not None and not self._audio_wake.done():
+            return
+        self._audio_wake = asyncio.create_task(
+            self._watch_audio_after_wake(), name="audio-wake"
+        )
 
     def _start_screen_timer(self) -> None:
         self._cancel_screen_timer()
