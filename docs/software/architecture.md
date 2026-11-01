@@ -32,7 +32,16 @@ The `controller` container runs one Python process with these parts:
 | `knob.py`       | the video selector knob (a KY-040 rotary encoder)                             |
 | `power.py`      | the power switch: a clean shutdown when the switch goes off                   |
 | `network.py`    | the Wi-Fi mode (hotspot or client) with the automatic fallback to the hotspot |
-| `web.py`        | the FastAPI JSON API and the phone web page                                   |
+| `web.py`        | the FastAPI JSON API and the web page for the phone                           |
+
+## Phone Access
+
+The controller serves one web page and its JSON API. A phone opens the page in one of two ways:
+
+- A phone browser opens <http://briefcase.lan> on the `BRIEFCASE` Wi-Fi network. It needs no installation.
+- The Briefcase Android app shows the same page in a full-screen web view. The app adds a connection check, a "Connect to BRIEFCASE" flow and an updater for the app itself. It binds only its own traffic to the briefcase Wi-Fi, so the phone keeps its mobile data. Refer to the [Android app guide](android.md).
+
+The page and the API are the same for both. Thus a change to the web app needs no change to the Android app.
 
 ## Instant Start
 
@@ -94,3 +103,4 @@ In laptop mode, the power switch is simulated. A power-off only writes a log mes
 - [Configuration](configuration.md)
 - [Development](development.md)
 - [Player notes](player.md)
+- [Android app](android.md)

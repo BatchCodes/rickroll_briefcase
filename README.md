@@ -6,7 +6,7 @@ A briefcase that plays a video when a person opens it. The classic video is "Nev
 
 ![Diagram of the briefcase system: the lid sensor and the arm switch connect to a Raspberry Pi, which shows the video on a 13.3 inch monitor](docs/images/system_overview.svg)
 
-The briefcase contains a Raspberry Pi, a 13.3" portable monitor and a USB-C power bank. A reed switch and a magnet detect the lid. An external switch arms the briefcase. The Pi makes its own Wi-Fi network. You use a phone browser to select the videos and change the settings. The briefcase needs no internet connection.
+The briefcase contains a Raspberry Pi, a 13.3" portable monitor and a USB-C power bank. A reed switch and a magnet detect the lid. An external switch arms the briefcase. The Pi makes its own Wi-Fi network. You select the videos and change the settings on a phone, in the phone browser or in the Briefcase Android app. The briefcase needs no internet connection.
 
 ## Features
 
@@ -14,7 +14,7 @@ The briefcase contains a Raspberry Pi, a 13.3" portable monitor and a USB-C powe
 - instant stop when a person closes the lid
 - external arm switch: switch it on and the briefcase is ready
 - zero-touch operation: no keyboard, no mouse, no desktop and no windows
-- a video library with upload, rename and delete in a phone web app
+- a video library with upload, rename and delete in a phone web app, in any phone browser or in the Briefcase Android app
 - a start position for each video, for example 00:30, with fixed, beginning, random and resume start modes
 - single, cycle and shuffle selection modes
 - loop or stop at the end of a video
@@ -75,18 +75,19 @@ For all options, run `curl -fsSL https://raw.githubusercontent.com/BatchCodes/ri
 
 Then do these steps:
 
-1. Connect your phone to the `BRIEFCASE` Wi-Fi network.
-2. Open <http://briefcase.lan> in the phone browser. If the name does not work, open <http://10.42.0.1>. Android can show "This network has no internet access". Select "Stay connected", because the briefcase needs no internet.
-3. Upload a video.
-4. Turn on the arm switch and close the lid.
-5. Give the briefcase to a friend.
+1. Open the web app on your phone. Use one of these methods:
+   - In the phone browser: connect your phone to the `BRIEFCASE` Wi-Fi network. Then open <http://briefcase.lan>. If the name does not work, open <http://10.42.0.1>. Android can show "This network has no internet access". Select "Stay connected", because the briefcase needs no internet.
+   - In the Briefcase Android app (Android 10 or later): download the APK from the newest [GitHub release](https://github.com/BatchCodes/rickroll_briefcase/releases) and install it. Open the app and tap "Connect to BRIEFCASE". The app uses the briefcase Wi-Fi only for itself, so the phone keeps its mobile data. Refer to the [Android app guide](docs/software/android.md).
+2. Upload a video.
+3. Turn on the arm switch and close the lid.
+4. Give the briefcase to a friend.
 
 ## Updating
 
 An update needs an internet connection. The briefcase Wi-Fi is an access point, so it has no internet. Use one of these methods:
 
 - On a Pi 4, connect an Ethernet cable to your router.
-- On the web page, push "Connect to known Wi-Fi". The Pi then connects to a Wi-Fi network that it knows. If it cannot connect in 60 s, it goes back to the access point. After a reboot, the Pi is always an access point again.
+- In the Wi-Fi tab of the web app, in the browser or in the Android app, push "Connect to known Wi-Fi". The Pi then connects to a Wi-Fi network that it knows. If it cannot connect in 60 s, it goes back to the access point. After a reboot, the Pi is always an access point again.
 
 To update the briefcase software, run these commands on the Pi, for example over SSH:
 

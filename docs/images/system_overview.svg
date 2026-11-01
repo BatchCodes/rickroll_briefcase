@@ -27,8 +27,8 @@
   <text x="655" y="91" fill="#111111" text-anchor="middle">13.3" monitor</text>
   <text x="655" y="111" fill="#444444" text-anchor="middle" font-size="12">HDMI video and audio</text>
   <rect x="570" y="190" width="170" height="60" fill="#ffffff" stroke="#333333" stroke-width="2" rx="8"/>
-  <text x="655" y="216" fill="#111111" text-anchor="middle">Phone browser</text>
-  <text x="655" y="236" fill="#444444" text-anchor="middle" font-size="12">web app</text>
+  <text x="655" y="216" fill="#111111" text-anchor="middle">Phone</text>
+  <text x="655" y="236" fill="#444444" text-anchor="middle" font-size="12">browser or Android app</text>
   <path d="M190,70 L288,92" stroke="#333333" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
   <text x="240" y="70" fill="#444444" text-anchor="middle" font-size="12">GPIO</text>
   <path d="M190,160 L288,148" stroke="#333333" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
