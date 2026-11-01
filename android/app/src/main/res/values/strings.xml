@@ -15,4 +15,17 @@
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="password_missing">Enter the Wi-Fi password of the briefcase first.</string>
+    <string name="check_updates">Check for updates</string>
+    <string name="include_prereleases">Include pre-releases</string>
+    <string name="update_title">Update available</string>
+    <string name="update_message">Version %1$s is available. This app is version %2$s.</string>
+    <string name="update_install">Install</string>
+    <string name="update_later">Later</string>
+    <string name="up_to_date">The app is up to date (version %1$s).</string>
+    <string name="update_not_possible">This build (%1$s) cannot update, because it has a development signing key. Install a release APK from GitHub.</string>
+    <string name="update_downloading">Downloading the update…</string>
+    <string name="update_failed">The update failed: %1$s</string>
+    <string name="allow_installs_title">Allow updates</string>
+    <string name="allow_installs_message">Android must allow this app to install updates. In the next screen, turn on "Allow from this source". Then check for updates again.</string>
+    <string name="open_settings">Open settings</string>
 </resources>

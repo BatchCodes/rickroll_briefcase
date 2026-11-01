@@ -54,4 +54,6 @@ android {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    // Android provides org.json at run time. Local unit tests need the real library.
+    testImplementation("org.json:json:20240303")
 }

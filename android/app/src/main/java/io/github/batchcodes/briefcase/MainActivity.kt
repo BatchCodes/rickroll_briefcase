@@ -14,6 +14,7 @@ import android.net.Uri
 import android.net.wifi.WifiNetworkSpecifier
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.InputType
 import android.view.Gravity
 import android.view.Menu
@@ -31,6 +32,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 
 /**
  * One screen: the briefcase web app in a web view.
@@ -51,6 +53,7 @@ class MainActivity : Activity() {
     private val preferences by lazy { getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE) }
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var fileCallback: ValueCallback<Array<Uri>>? = null
+    private val updater by lazy { AppUpdater(this) }
 
     private val networkName: String
         get() = preferences.getString(KEY_NETWORK_NAME, null) ?: Briefcase.DEFAULT_NETWORK_NAME
@@ -62,6 +65,72 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         buildViews()
         checkAndLoad()
+        val dayMs = 24L * 60 * 60 * 1000
+        if (System.currentTimeMillis() - preferences.getLong(KEY_LAST_UPDATE_CHECK, 0) > dayMs) {
+            checkForUpdates(manual = false)
+        }
+    }
+
+    private fun checkForUpdates(manual: Boolean) {
+        val installed = updater.installedVersion()
+        if (!Updates.canUpdate(installed)) {
+            if (manual) toast(getString(R.string.update_not_possible, installed))
+            return
+        }
+        val includePreReleases = preferences.getBoolean(KEY_INCLUDE_PRERELEASES, false)
+        Thread {
+            val result = runCatching { updater.findUpdate(includePreReleases) }
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                result.onSuccess { release ->
+                    preferences.edit().putLong(KEY_LAST_UPDATE_CHECK, System.currentTimeMillis()).apply()
+                    if (release != null) {
+                        offerUpdate(release, installed)
+                    } else if (manual) {
+                        toast(getString(R.string.up_to_date, installed))
+                    }
+                }
+                result.onFailure { error ->
+                    if (manual) toast(getString(R.string.update_failed, error.message ?: error.toString()))
+                }
+            }
+        }.start()
+    }
+
+    private fun offerUpdate(release: AppRelease, installed: String) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.update_title)
+            .setMessage(getString(R.string.update_message, release.tag.removePrefix("v"), installed))
+            .setPositiveButton(R.string.update_install) { _, _ -> installUpdate(release) }
+            .setNegativeButton(R.string.update_later, null)
+            .show()
+    }
+
+    private fun installUpdate(release: AppRelease) {
+        if (!packageManager.canRequestPackageInstalls()) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.allow_installs_title)
+                .setMessage(R.string.allow_installs_message)
+                .setPositiveButton(R.string.open_settings) { _, _ ->
+                    startActivity(
+                        Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")),
+                    )
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+            return
+        }
+        toast(getString(R.string.update_downloading))
+        Thread {
+            val result = runCatching { updater.downloadAndInstall(release) }
+            result.onFailure { error ->
+                runOnUiThread { toast(getString(R.string.update_failed, error.message ?: error.toString())) }
+            }
+        }.start()
+    }
+
+    private fun toast(text: String) {
+        Toast.makeText(this, text, Toast.LENGTH_LONG).show()
     }
 
     override fun onDestroy() {
@@ -300,6 +369,10 @@ class MainActivity : Activity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_RELOAD, Menu.NONE, R.string.reload)
         menu.add(Menu.NONE, MENU_SETTINGS, Menu.NONE, R.string.settings)
+        menu.add(Menu.NONE, MENU_CHECK_UPDATES, Menu.NONE, R.string.check_updates)
+        menu.add(Menu.NONE, MENU_PRERELEASES, Menu.NONE, R.string.include_prereleases)
+            .setCheckable(true)
+            .setChecked(preferences.getBoolean(KEY_INCLUDE_PRERELEASES, false))
         return true
     }
 
@@ -311,6 +384,16 @@ class MainActivity : Activity() {
             }
             MENU_SETTINGS -> {
                 showSettings()
+                true
+            }
+            MENU_CHECK_UPDATES -> {
+                checkForUpdates(manual = true)
+                true
+            }
+            MENU_PRERELEASES -> {
+                val include = !item.isChecked
+                item.isChecked = include
+                preferences.edit().putBoolean(KEY_INCLUDE_PRERELEASES, include).apply()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -354,5 +437,9 @@ class MainActivity : Activity() {
         const val REQUEST_PERMISSION = 2
         const val MENU_RELOAD = 1
         const val MENU_SETTINGS = 2
+        const val MENU_CHECK_UPDATES = 3
+        const val MENU_PRERELEASES = 4
+        const val KEY_INCLUDE_PRERELEASES = "include_prereleases"
+        const val KEY_LAST_UPDATE_CHECK = "last_update_check"
     }
 }

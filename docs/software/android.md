@@ -10,7 +10,17 @@ The app needs Android 10 or later.
 2. Open the file. Android asks for permission to install apps from this source. Allow it.
 3. Install the app.
 
-An update installs over the old app, because each release has the same signing key.
+## Update the App
+
+The app checks the GitHub releases at most once a day, and when you select "Check for updates" in the menu. If a newer release exists, the app offers to install it:
+
+1. Tap "Install". The app downloads the APK over the phone's internet connection, not over the briefcase Wi-Fi, and checks its SHA-256 checksum against the release `SHA256SUMS` file.
+2. The first time, Android asks you to allow "Install unknown apps" for the app. Allow it, then select "Check for updates" again.
+3. Android asks you to confirm the update.
+
+To test pre-releases, select "Include pre-releases" in the menu.
+
+An update installs only over an app with the same signing key. So updates work between release APKs. A debug APK from CI cannot update, and the app says so.
 
 ## Use the App
 
