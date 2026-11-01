@@ -20,6 +20,8 @@
     <string name="signal_weak">weak</string>
     <string name="settings">Wi-Fi settings</string>
     <string name="reload">Reload</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="disconnected">Disconnected from %1$s. Pull down or tap \"Try again\" to search for the briefcase.</string>
     <string name="network_name">Network name</string>
     <string name="password">Password (empty for an open network)</string>
     <string name="save">Save</string>

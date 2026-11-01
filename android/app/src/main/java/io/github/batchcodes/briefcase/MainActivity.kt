@@ -25,6 +25,7 @@ import android.text.InputType
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
@@ -242,6 +243,7 @@ class MainActivity : Activity() {
             addView(connectButton)
             addView(retryButton)
         }
+        enablePullToReload(panel)
 
         val root = FrameLayout(this)
         val full = FrameLayout.LayoutParams(
@@ -440,6 +442,53 @@ class MainActivity : Activity() {
         connectivity.requestNetwork(request, callback)
     }
 
+    /** Release the briefcase Wi-Fi and show the connect screen. */
+    private fun disconnect() {
+        releaseNetwork()
+        webView.stopLoading()
+        webView.loadUrl("about:blank")
+        showPanel(getString(R.string.disconnected, networkName), showConnect = true)
+    }
+
+    /**
+     * Pull down on the not-connected screen to search for the briefcase again.
+     * The screen follows the finger, and a pull of PULL_DISTANCE_DP starts the search.
+     */
+    private fun enablePullToReload(view: View) {
+        val threshold = PULL_DISTANCE_DP * resources.displayMetrics.density
+        var startY = 0f
+        var pulling = false
+        view.setOnTouchListener { touched, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    startY = event.rawY
+                    pulling = true
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (pulling) {
+                        val distance = (event.rawY - startY).coerceAtLeast(0f)
+                        touched.translationY = minOf(distance, threshold * 1.5f) / 2
+                        touched.alpha = if (distance >= threshold) 0.6f else 1f
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val distance = event.rawY - startY
+                    touched.animate().translationY(0f).alpha(1f).setDuration(150).start()
+                    if (pulling && event.actionMasked == MotionEvent.ACTION_UP && distance >= threshold) {
+                        checkAndLoad()
+                    } else if (event.actionMasked == MotionEvent.ACTION_UP && distance < touched.height / 50f) {
+                        touched.performClick()
+                    }
+                    pulling = false
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
     private fun releaseNetwork() {
         networkCallback?.let {
             try {
@@ -552,6 +601,7 @@ class MainActivity : Activity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_RELOAD, Menu.NONE, R.string.reload)
         menu.add(Menu.NONE, MENU_SETTINGS, Menu.NONE, R.string.settings)
+        menu.add(Menu.NONE, MENU_DISCONNECT, Menu.NONE, R.string.disconnect)
         menu.add(Menu.NONE, MENU_CHECK_UPDATES, Menu.NONE, R.string.check_updates)
         menu.add(Menu.NONE, MENU_PRERELEASES, Menu.NONE, R.string.include_prereleases)
             .setCheckable(true)
@@ -567,6 +617,10 @@ class MainActivity : Activity() {
             }
             MENU_SETTINGS -> {
                 showSettings()
+                true
+            }
+            MENU_DISCONNECT -> {
+                disconnect()
                 true
             }
             MENU_CHECK_UPDATES -> {
@@ -626,6 +680,8 @@ class MainActivity : Activity() {
         const val MENU_SETTINGS = 2
         const val MENU_CHECK_UPDATES = 3
         const val MENU_PRERELEASES = 4
+        const val MENU_DISCONNECT = 5
+        const val PULL_DISTANCE_DP = 96
         const val KEY_INCLUDE_PRERELEASES = "include_prereleases"
         const val KEY_LAST_UPDATE_CHECK = "last_update_check"
     }
