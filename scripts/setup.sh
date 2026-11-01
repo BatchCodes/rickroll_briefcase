@@ -40,6 +40,12 @@ CMDLINE_PARAMS=(
   "loglevel=3"
   "vt.global_cursor_default=0"
 )
+# Without a kernel console on HDMI, the screen can turn off while the lid is
+# closed. drm_client_lib is in kernel 6.15 and newer, drm_kms_helper in older ones.
+SCREEN_OFF_PARAMS=(
+  "drm_client_lib.active=none"
+  "drm_kms_helper.fbdev_emulation=0"
+)
 
 usage() {
   cat <<USAGE
@@ -408,6 +414,7 @@ write_env() {
   set_env_value BRIEFCASE_HTTP_PORT 80
   set_env_value BRIEFCASE_PLAYER_EXTRA_ARGS "$(hdmi_player_args)"
   set_env_value BRIEFCASE_POWER_MODE "${POWER_MODE}"
+  set_display_backend
   if [[ "${KNOB_MODE}" == "on" ]]; then
     set_env_value BRIEFCASE_KNOB_CLK_PIN "${KNOB_CLK_PIN}"
     set_env_value BRIEFCASE_KNOB_DT_PIN "${KNOB_DT_PIN}"
@@ -424,6 +431,25 @@ write_env() {
     set_env_value BRIEFCASE_POWER_SWITCH_PIN "${POWER_SWITCH_PIN}"
   fi
   choose_images
+}
+
+set_display_backend() {
+  local current_backend=""
+
+  if [[ -f "${ENV_FILE}" ]]; then
+    current_backend="$(sed -n 's/^BRIEFCASE_DISPLAY_BACKEND=//p' "${ENV_FILE}" | tail -n 1)"
+  fi
+  # Keep a "command" backend that the user set by hand.
+  if [[ "${current_backend}" == "command" ]]; then
+    return 0
+  fi
+  # The player backend turns the screen off while the lid is closed. It needs the
+  # HDMI console off, so it does not work with --keep-console.
+  if [[ "${KEEP_CONSOLE}" -eq 1 ]]; then
+    set_env_value BRIEFCASE_DISPLAY_BACKEND none
+  else
+    set_env_value BRIEFCASE_DISPLAY_BACKEND player
+  fi
 }
 
 image_owner() {
@@ -544,6 +570,7 @@ hdmi_player_args() {
 
 configure_boot() {
   local block
+  local -a wanted_params
   local temp_file
   local param
 
@@ -588,7 +615,15 @@ ${CONFIG_END}"
 
   # Remove the forced mode of an earlier port, so that only one port reports "connected".
   sed -i -E '1 s/ ?video=HDMI-A-[0-9]+:[^ ]*//g' "${CMDLINE_TXT}"
-  for param in "${CMDLINE_PARAMS[@]}" "video=${HDMI_CONNECTOR}:${HDMI_MODE}"; do
+  wanted_params=("${CMDLINE_PARAMS[@]}" "video=${HDMI_CONNECTOR}:${HDMI_MODE}")
+  if [[ "${KEEP_CONSOLE}" -eq 1 ]]; then
+    for param in "${SCREEN_OFF_PARAMS[@]}"; do
+      sed -i "1 s/ ${param}//g" "${CMDLINE_TXT}"
+    done
+  else
+    wanted_params+=("${SCREEN_OFF_PARAMS[@]}")
+  fi
+  for param in "${wanted_params[@]}"; do
     if ! grep -qw -- "${param}" "${CMDLINE_TXT}"; then
       sed -i "1 s/\$/ ${param}/" "${CMDLINE_TXT}"
     fi

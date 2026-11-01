@@ -4,6 +4,7 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
     mpv \
+    libdrm-tests \
     libgl1-mesa-dri \
     libpulse0 \
     tini \
@@ -13,6 +14,7 @@ RUN apt-get update \
 
 COPY mpv.conf /etc/mpv/mpv.conf
 COPY entrypoint.sh /usr/local/bin/player-entrypoint
+COPY screen_off.sh /usr/local/bin/screen-off
 
 USER briefcase
 HEALTHCHECK --interval=10s --timeout=2s --start-period=10s --retries=3 \
