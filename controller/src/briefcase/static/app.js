@@ -23,6 +23,13 @@ const WIFI_MODE_LABELS = {
   unavailable: "Unavailable",
 };
 
+const AUDIO_LABELS = {
+  ok: "OK",
+  failed: "No sound",
+  no_track: "No audio track",
+  unknown: "–",
+};
+
 const POWER_LABELS = {
   on: "On",
   off_pending: "Off (waiting)",
@@ -152,6 +159,17 @@ function renderStatus(status) {
   $("#lid-state").textContent = status.lid_open ? "Open" : "Closed";
   $("#arm-state").textContent = status.armed ? "Armed" : "Disarmed";
   $("#player-state").textContent = status.player_connected ? "Connected" : "Offline";
+  const audioState = $("#audio-state");
+  audioState.textContent = AUDIO_LABELS[status.audio] || status.audio || "–";
+  audioState.title = status.audio_device || "";
+  const audioMessage = $("#audio-message");
+  audioMessage.hidden = status.audio !== "failed";
+  audioMessage.textContent =
+    status.audio === "failed"
+      ? `The player cannot open the sound device ${status.audio_device || ""}. ` +
+        "The briefcase tries again every 5 s. Make sure that the monitor is on " +
+        "and that the HDMI cable is in HDMI 0."
+      : "";
 
   const playing = status.state === "playing";
   const position = status.position_sec;
