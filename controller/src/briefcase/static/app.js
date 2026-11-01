@@ -31,6 +31,35 @@ const POWER_LABELS = {
 
 const $ = (selector, root = document) => root.querySelector(selector);
 
+const TAB_NAMES = ["status", "playback", "videos", "wifi"];
+
+function availableTabs() {
+  return TAB_NAMES.filter((name) => {
+    const button = $(`.tabs [data-tab="${name}"]`);
+    return button && !button.hidden;
+  });
+}
+
+function showTab(name) {
+  const tabs = availableTabs();
+  const selected = tabs.includes(name) ? name : "status";
+  for (const button of document.querySelectorAll(".tabs [data-tab]")) {
+    button.setAttribute("aria-selected", String(button.dataset.tab === selected));
+  }
+  for (const section of document.querySelectorAll("main > section[data-tab]")) {
+    section.classList.toggle("tab-hidden", section.dataset.tab !== selected);
+  }
+  // Keep a requested tab that is not available yet (for example "wifi"
+  // before the first network status), so it opens when it becomes available.
+  if (selected === name && location.hash !== `#${selected}`) {
+    history.replaceState(null, "", `#${selected}`);
+  }
+}
+
+function currentTab() {
+  return location.hash.replace("#", "") || "status";
+}
+
 let lastStatus = null;
 let lastArmedVideo = null;
 let videos = [];
@@ -332,6 +361,11 @@ async function run(action) {
 function renderNetwork(network) {
   const card = $("#wifi-card");
   card.hidden = !network.available;
+  const tabButton = $('.tabs [data-tab="wifi"]');
+  if (tabButton.hidden === network.available) {
+    tabButton.hidden = !network.available;
+    showTab(currentTab());
+  }
   if (!network.available) return;
 
   $("#wifi-mode").textContent = WIFI_MODE_LABELS[network.mode] || network.mode;
@@ -387,6 +421,8 @@ async function refreshNetwork() {
     renderNetwork(await api("GET", "/api/network"));
   } catch (error) {
     $("#wifi-card").hidden = true;
+    $('.tabs [data-tab="wifi"]').hidden = true;
+    showTab(currentTab());
   }
 }
 
@@ -465,6 +501,14 @@ async function uploadAll(files) {
 }
 
 function bindEvents() {
+  for (const button of document.querySelectorAll(".tabs [data-tab]")) {
+    button.addEventListener("click", () => {
+      showTab(button.dataset.tab);
+      window.scrollTo(0, 0);
+    });
+  }
+  window.addEventListener("hashchange", () => showTab(currentTab()));
+
   $("#play-button").addEventListener("click", () =>
     run(async () => renderStatus(await api("POST", "/api/play", { active: true }))),
   );
@@ -577,6 +621,7 @@ function bindEvents() {
 }
 
 bindEvents();
+showTab(currentTab());
 refreshAll().catch((error) => showError(error.message));
 setInterval(refreshStatus, STATUS_POLL_MS);
 setInterval(refreshNetwork, 5000);

@@ -14,8 +14,15 @@
       <span class="version">v{{ version }}</span>
     </header>
 
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button type="button" role="tab" data-tab="status" aria-selected="true">Status</button>
+      <button type="button" role="tab" data-tab="playback" aria-selected="false">Playback</button>
+      <button type="button" role="tab" data-tab="videos" aria-selected="false">Videos</button>
+      <button type="button" role="tab" data-tab="wifi" aria-selected="false" hidden>Wi-Fi</button>
+    </nav>
+
     <main>
-      <section class="card" aria-labelledby="status-heading">
+      <section class="card" data-tab="status" aria-labelledby="status-heading">
         <h2 id="status-heading">Status</h2>
         <div class="status-row">
           <span id="state-badge" class="badge">starting</span>
@@ -64,7 +71,7 @@
         </div>
       </section>
 
-      <section class="card" aria-labelledby="settings-heading">
+      <section class="card" data-tab="playback" aria-labelledby="settings-heading">
         <h2 id="settings-heading">Playback</h2>
         <form id="settings-form">
           <div class="video-table-wrap">
@@ -109,7 +116,7 @@
         </form>
       </section>
 
-      <section class="card" aria-labelledby="library-heading">
+      <section class="card" data-tab="videos" aria-labelledby="library-heading">
         <h2 id="library-heading">Videos</h2>
         <label class="upload">
           <span>Upload a video</span>
@@ -129,7 +136,7 @@
           <code>tools/transcode.sh</code> for the best result.
         </p>
       </section>
-      <section id="wifi-card" class="card" aria-labelledby="wifi-heading" hidden>
+      <section id="wifi-card" class="card" data-tab="wifi" aria-labelledby="wifi-heading" hidden>
         <h2 id="wifi-heading">Wi-Fi</h2>
         <dl class="facts">
           <div><dt>Mode</dt><dd id="wifi-mode">–</dd></div>

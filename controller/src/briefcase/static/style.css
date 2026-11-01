@@ -361,3 +361,34 @@ h3 {
 .hint {
   margin: 0 0 8px;
 }
+
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs button {
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 4px;
+  color: var(--muted);
+  background: transparent;
+  border-radius: 8px;
+}
+
+.tabs button[aria-selected="true"] {
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+.tab-hidden {
+  display: none;
+}
