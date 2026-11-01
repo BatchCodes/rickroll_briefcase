@@ -1,6 +1,7 @@
 "use strict";
 
 const STATUS_POLL_MS = 1000;
+const VOLUME_SEND_MS = 150;
 
 const STATE_LABELS = {
   starting: "Starting",
@@ -601,8 +602,24 @@ function bindEvents() {
   );
 
   const form = $("#settings-form");
+  // The volume applies while the slider moves. Send at most one request per
+  // VOLUME_SEND_MS, and always send the last value.
+  let volumeTimer = null;
+  let volumeSent = null;
+  const sendVolume = () => {
+    volumeTimer = null;
+    const volume = Number(form.volume.value);
+    if (volume === volumeSent) {
+      volumeSent = null;
+      return;
+    }
+    volumeSent = volume;
+    api("POST", "/api/volume", { volume }).catch((error) => showError(error.message));
+    volumeTimer = setTimeout(sendVolume, VOLUME_SEND_MS);
+  };
   form.volume.addEventListener("input", () => {
     $("#volume-value").textContent = form.volume.value;
+    if (volumeTimer === null) sendVolume();
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -610,7 +627,6 @@ function bindEvents() {
       selection_mode: form.selection_mode.value,
       default_start: form.default_start.value.trim() || "00:30",
       resume_window: form.resume_window.value.trim() || "15",
-      volume: Number(form.volume.value),
     };
     const settings = await run(() => api("PUT", "/api/settings", body));
     if (settings) await refreshAll();

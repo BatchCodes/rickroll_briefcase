@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from briefcase import __version__
 from briefcase.config import AppConfig
@@ -40,6 +40,10 @@ class GlobalSettingsUpdate(BaseModel):
     default_start: str | float | None = None
     volume: int | None = None
     resume_window: str | float | None = None
+
+
+class VolumeRequest(BaseModel):
+    volume: int = Field(ge=0, le=100)
 
 
 class RenameRequest(BaseModel):
@@ -196,6 +200,14 @@ def create_app(
             raise _bad_request(error) from error
         store.replace(settings)
         await controller.settings_changed()
+        return settings_payload()
+
+    @app.post("/api/volume")
+    async def put_volume(body: VolumeRequest) -> dict[str, Any]:
+        settings = store.get()
+        settings.volume = body.volume
+        store.replace(settings)
+        await controller.volume_changed()
         return settings_payload()
 
     @app.post("/api/settings/reset")

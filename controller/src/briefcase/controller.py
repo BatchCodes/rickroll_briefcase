@@ -182,6 +182,16 @@ class BriefcaseController:
 
         await self._run(handler)
 
+    async def volume_changed(self) -> None:
+        """Apply the new volume at once. Do not load the video again."""
+
+        async def handler() -> None:
+            await self._player_call(
+                self._player.set_volume(self._settings.get().volume)
+            )
+
+        await self._run(handler)
+
     async def library_changed(self) -> None:
         async def handler() -> None:
             names = self._library.names()

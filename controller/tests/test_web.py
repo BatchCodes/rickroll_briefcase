@@ -140,6 +140,16 @@ def test_reset_settings(setup):
     assert client.post("/api/settings/reset").json()["volume"] == 80
 
 
+def test_volume_applies_at_once_without_a_reload(setup):
+    client, _, player, store, _ = setup
+    preloads = sum(1 for call in player.calls if call[0] == "preload")
+    assert client.post("/api/volume", json={"volume": 35}).json()["volume"] == 35
+    assert player.volume == 35
+    assert store.get().volume == 35
+    assert sum(1 for call in player.calls if call[0] == "preload") == preloads
+    assert client.post("/api/volume", json={"volume": 101}).status_code == 422
+
+
 def test_pause_seek_use_position_api(setup):
     client, *_ = setup
     assert client.post("/api/pause", json={"paused": True}).status_code == 409
