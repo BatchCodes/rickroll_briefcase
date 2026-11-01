@@ -59,3 +59,16 @@ jobs:
       - name: "Show the logs"
         if: always()
         run: "docker compose -f compose.yml -f compose.dev.yml logs"
+
+  android:
+    name: "Android app"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v7"
+      - name: "Run the unit tests and build a debug APK"
+        run: "./scripts/build_android.sh debug dist/briefcase-debug.apk"
+      - uses: "actions/upload-artifact@v7"
+        with:
+          name: "briefcase-debug-apk"
+          path: "dist/briefcase-debug.apk"
+          retention-days: 14

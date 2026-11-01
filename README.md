@@ -110,6 +110,7 @@ The code is in the container images, so this is the complete update. If you used
 | [Configuration](docs/software/configuration.md) | all settings and their defaults                      |
 | [Development](docs/software/development.md)     | how to run and test the software on a laptop         |
 | [Player notes](docs/software/player.md)         | player and hardware test results                     |
+| [Android app](docs/software/android.md)         | the phone app: install, use and build                |
 | [Video tools](tools/README.md)                  | how to make test videos and convert your own videos  |
 
 ## Contributing
