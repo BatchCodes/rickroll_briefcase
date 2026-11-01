@@ -266,7 +266,31 @@ The user has a KY-040 rotary encoder module (pins `CLK`, `DT`, `SW`, `+`, `GND`)
 7.2. [x] (bd: rickroll_briefcase-679.25) Selection: while disarmed, a knob step selects the next or previous video, stores it as the "Video to play", loads it paused and muted at its start position, and shows its name with the `mpv` `show-text` command. The display is on while disarmed with the lid open. Armed steps do nothing. Add tests.
 7.3. [ ] (bd: none) Test on the Pi 5: the number of events per detent, the response time from a turn to the new frame, and the web app update. Update the wiring and configuration documentation.
 
-## Phase 8: Future Work
+## Phase 8: Web App Tabs and Android App
+
+The user wants an Android app. The app checks that the phone can reach the briefcase. If it cannot, the app offers to connect to the briefcase Wi-Fi. Then it shows the web app. The web app gets tabs: Status, Playback, Videos and Wi-Fi.
+
+### Decisions
+
+- Order -> the tabs come first, in the web app itself. They also help a phone browser without the app. The Android app then shows the web app in a full-screen web view.
+- Phone -> the user's phone runs Android 15. The app targets Android 15 (API level 35) and needs Android 10 (API level 29) or later, because the connect flow uses `WifiNetworkSpecifier`.
+- Connection check -> the app requests `http://briefcase.lan/healthz`. It does not read the Wi-Fi name, because that needs the location permission on Android 10 and later.
+- Connect flow -> the app requests the briefcase network with `WifiNetworkSpecifier` (network name and password from the app settings, default name `BRIEFCASE`). Android shows its own confirmation dialog. The app then binds its process to that network, so the web view uses the briefcase Wi-Fi and the rest of the phone keeps mobile data. This also avoids the Android "no internet" prompt.
+- Plain HTTP -> a network security configuration allows clear text only for `briefcase.lan` and `10.42.0.1`.
+- Uploads -> the web view implements the file chooser, so video upload works in the app.
+- App name -> "Briefcase", because the name is outward facing.
+- Distribution -> an APK file attached to each GitHub release. The user installs it with "install unknown apps". No Google Play listing.
+- Signing -> a release key in GitHub Actions secrets. All releases then have the same key, so an update installs over the old app. The user creates the key with a command from the plan step.
+- Build -> Gradle in a Docker image, locally and in CI, so no Android Studio is needed.
+
+### Implementation Steps
+
+8.1. [ ] (bd: none) Web app tabs: a tab bar with Status, Playback, Videos and Wi-Fi. Show one section at a time on a phone. Keep the selected tab in the URL fragment, so a reload keeps it. Hide the Wi-Fi tab when Wi-Fi control is not available. Check the layout in phone-sized screenshots.
+8.2. [ ] (bd: none) Android app in `android/`: a Kotlin project with one activity. The activity has a full-screen web view, the connection check, the "Connect to BRIEFCASE" flow with `WifiNetworkSpecifier`, a settings screen for the network name and password, the file chooser for uploads, and the network security configuration. Add unit tests for the connection logic.
+8.3. [ ] (bd: none) Build and release: a Docker build for the APK, a CI job that builds a debug APK on each push, and a release job that signs the APK with the key from the GitHub Actions secrets and attaches it to the GitHub release. Document how to make the key and add the secrets.
+8.4. [ ] (bd: none) Test on the user's Android 15 phone: install the APK, the connect flow from mobile data, the web view on the briefcase Wi-Fi, a video upload in the app, and the behaviour when the briefcase is off. Record the results.
+
+## Phase 9: Future Work
 
 Not started. Candidate items: an ESP32 power controller for a long standby time, a function for the knob button, a separate amplifier, a web app PIN or login, a shutdown button, video thumbnails, a read-only root file system (overlay) for safer power loss, and a pre-built SD card image with `pi-gen`.
 
