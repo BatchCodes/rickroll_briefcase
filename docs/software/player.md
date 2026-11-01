@@ -136,6 +136,36 @@ This test checks the power switch before the MOSFET latch hardware is fitted. Co
 | Power draw of the halted Pi (W)      |        |
 | 20 power cycles without a fault      |        |
 
+## HDMI Sound
+
+The Status tab of the web app shows "No sound" when the player cannot open the HDMI sound device. The controller tries again every 5 s. If the sound does not come back, do these checks on the Pi.
+
+1. Find the exact error. `Unknown error 524` means that the kernel refuses audio on this HDMI port at the moment of the open.
+
+   ```bash
+   docker compose logs player | grep -i -B3 "failed to initialize audio"
+   grep PLAYER_EXTRA_ARGS .env
+   ```
+
+2. Check that the monitor is connected to `HDMI-A-1` (HDMI 0), and that its EDID reports audio. The EDID must have more than 0 bytes, and `edid-decode` must show an "Audio Data Block".
+
+   ```bash
+   for c in /sys/class/drm/card*-HDMI-A-*; do echo "$c: $(cat $c/status), EDID $(wc -c < $c/edid) bytes"; done
+   edid-decode /sys/class/drm/card1-HDMI-A-1/edid | grep -i -A3 audio
+   ```
+
+3. While the monitor shows the video, test the sound device on the Pi. "Device or resource busy" means that `mpv` has the device open, so the device works. Error 524 here means a cause outside Docker, for example the HDMI output or the monitor.
+
+   ```bash
+   speaker-test -D sysdefault:CARD=vc4hdmi0 -c 2 -t sine -l 1
+   ```
+
+4. Check the ELD, which is what the audio driver knows about the monitor. All zeros means that the driver has no data about the monitor.
+
+   ```bash
+   amixer -c vc4hdmi0 cget iface=PCM,name=ELD
+   ```
+
 ## Results Log
 
 | Date | Board | Tester | Notes |

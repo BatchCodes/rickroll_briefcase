@@ -91,6 +91,21 @@ The optional power switch connects GPIO 3 to ground when it is on. When it goes 
 
 In laptop mode, the power switch is simulated. A power-off only writes a log message.
 
+## Sound Check
+
+On a Raspberry Pi, the HDMI audio open fails with error 524 while the HDMI output is not active yet, for example just after boot. `mpv` then plays the video with no sound, and it does not try the audio device again until the next file.
+
+The controller reads the sound status from `mpv`:
+
+| Status     | Meaning                                                      |
+| ---------- | ------------------------------------------------------------ |
+| `ok`       | `mpv` has an audio output (`current-ao`).                    |
+| `failed`   | the video has an audio track, but `mpv` has no audio output. |
+| `no_track` | the video has no audio track.                                |
+| `unknown`  | no video is loaded, or the player is offline.                |
+
+When the status is `failed`, the controller selects the audio track again (`aid=auto`). Then `mpv` opens the audio device again. The controller does this when the lid opens and every 5 s. The Status tab of the web app shows the status as "Sound", and it shows what to check while the sound fails. Refer to [HDMI Sound](player.md#hdmi-sound) to find the cause on the Pi.
+
 ## Recovery
 
 - If the `mpv` connection breaks, the controller connects again and loads the video again.
