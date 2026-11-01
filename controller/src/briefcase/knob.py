@@ -58,43 +58,75 @@ class SimulatedKnob(_StepNotifier):
         pass
 
 
+# The pin levels (CLK << 1 | DT) in clockwise order: 11, 01, 00, 10.
+_CLOCKWISE_ORDER = (0b11, 0b01, 0b00, 0b10)
+_REST_STATES = (0b11, 0b00)
+
+
 class GpioKnob(_StepNotifier):
     """A quadrature rotary encoder on two GPIO pins.
 
-    ``steps_per_detent`` groups the encoder steps into one knob step. Most
-    KY-040 modules give one encoder step per detent. ``invert`` swaps the
-    direction, for example when ``CLK`` and ``DT`` are wired the other way.
+    The decoder emits one encoder step at each rest state, ``11`` and ``00``,
+    so a KY-040 with a detent at every half cycle gives one step per click.
+    gpiozero's ``RotaryEncoder`` counts only full cycles, which needs two
+    clicks on such a knob. ``steps_per_detent`` groups the encoder steps into
+    one knob step: set it to 2 for a knob with a detent at every full cycle.
+    ``invert`` swaps the direction, for example when ``CLK`` and ``DT`` are
+    wired the other way.
     """
 
     simulated = False
 
     def __init__(self, config: AppConfig, pin_factory: object | None = None) -> None:
         super().__init__()
-        from gpiozero import RotaryEncoder
+        from gpiozero import DigitalInputDevice
 
         assert config.knob_clk_pin is not None
         assert config.knob_dt_pin is not None
         self._steps_per_detent = max(1, config.knob_steps_per_detent)
         self._direction = -1 if config.knob_invert else 1
         self._count = 0
-        self._count_lock = threading.Lock()
-        self._encoder = RotaryEncoder(
-            config.knob_clk_pin,
-            config.knob_dt_pin,
-            max_steps=0,
-            pin_factory=pin_factory,
+        self._quarters = 0
+        self._lock = threading.Lock()
+        self._clk = DigitalInputDevice(
+            config.knob_clk_pin, pull_up=True, pin_factory=pin_factory
         )
-        self._encoder.when_rotated_clockwise = lambda: self._raw_step(1)
-        self._encoder.when_rotated_counter_clockwise = lambda: self._raw_step(-1)
+        self._dt = DigitalInputDevice(
+            config.knob_dt_pin, pull_up=True, pin_factory=pin_factory
+        )
+        self._state = self._read()
+        for device in (self._clk, self._dt):
+            device.when_activated = self._changed
+            device.when_deactivated = self._changed
         LOGGER.info(
             "Knob ready: CLK pin %d, DT pin %d",
             config.knob_clk_pin,
             config.knob_dt_pin,
         )
 
-    def _raw_step(self, raw: int) -> None:
-        with self._count_lock:
-            self._count += raw
+    def _read(self) -> int:
+        # With the pull-ups, an active (low) pin reads as 1, so invert it.
+        return (0 if self._clk.value else 0b10) | (0 if self._dt.value else 0b01)
+
+    def _changed(self) -> None:
+        with self._lock:
+            new_state = self._read()
+            old_state, self._state = self._state, new_state
+            delta = (
+                _CLOCKWISE_ORDER.index(new_state) - _CLOCKWISE_ORDER.index(old_state)
+            ) % 4
+            if delta == 1:
+                self._quarters += 1
+            elif delta == 3:
+                self._quarters -= 1
+            # delta 2 means a missed edge: the direction is not known, so wait.
+            if new_state not in _REST_STATES:
+                return
+            quarters, self._quarters = self._quarters, 0
+            if abs(quarters) < 2:
+                # Contact bounce, or the knob went back to the same rest state.
+                return
+            self._count += 1 if quarters > 0 else -1
             if abs(self._count) < self._steps_per_detent:
                 return
             step = 1 if self._count > 0 else -1
@@ -102,7 +134,8 @@ class GpioKnob(_StepNotifier):
         self._notify(step * self._direction)
 
     def close(self) -> None:
-        self._encoder.close()
+        self._clk.close()
+        self._dt.close()
 
 
 def create_knob(config: AppConfig) -> Knob | None:

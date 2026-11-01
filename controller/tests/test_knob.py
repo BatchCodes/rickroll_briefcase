@@ -32,16 +32,19 @@ def factory():
     mock_factory.reset()
 
 
-def clockwise(clk, dt):
-    for clk_level, dt_level in ((0, 1), (0, 0), (1, 0), (1, 1)):
+def drive(clk, dt, levels):
+    for clk_level, dt_level in levels:
         clk.drive_low() if clk_level == 0 else clk.drive_high()
         dt.drive_low() if dt_level == 0 else dt.drive_high()
+
+
+def clockwise(clk, dt):
+    """One full quadrature cycle: 11, 01, 00, 10, 11."""
+    drive(clk, dt, ((0, 1), (0, 0), (1, 0), (1, 1)))
 
 
 def anticlockwise(clk, dt):
-    for clk_level, dt_level in ((1, 0), (0, 0), (0, 1), (1, 1)):
-        clk.drive_low() if clk_level == 0 else clk.drive_high()
-        dt.drive_low() if dt_level == 0 else dt.drive_high()
+    drive(clk, dt, ((1, 0), (0, 0), (0, 1), (1, 1)))
 
 
 def make_knob(factory, **overrides):
@@ -55,25 +58,41 @@ def make_knob(factory, **overrides):
     return knob, steps, clk, dt
 
 
+def test_gpio_knob_one_step_per_half_cycle(factory):
+    knob, steps, clk, dt = make_knob(factory)
+    drive(clk, dt, ((0, 1), (0, 0)))
+    assert steps == [1]
+    drive(clk, dt, ((1, 0), (1, 1)))
+    assert steps == [1, 1]
+    knob.close()
+
+
 def test_gpio_knob_directions(factory):
     knob, steps, clk, dt = make_knob(factory)
     clockwise(clk, dt)
     anticlockwise(clk, dt)
-    assert steps == [1, -1]
+    assert steps == [1, 1, -1, -1]
+    knob.close()
+
+
+def test_gpio_knob_ignores_bounce(factory):
+    knob, steps, clk, dt = make_knob(factory)
+    drive(clk, dt, ((0, 1), (1, 1), (0, 1), (1, 1)))
+    assert steps == []
     knob.close()
 
 
 def test_gpio_knob_invert(factory):
     knob, steps, clk, dt = make_knob(factory, knob_invert=True)
     clockwise(clk, dt)
-    assert steps == [-1]
+    assert steps == [-1, -1]
     knob.close()
 
 
 def test_gpio_knob_steps_per_detent(factory):
     knob, steps, clk, dt = make_knob(factory, knob_steps_per_detent=2)
-    clockwise(clk, dt)
+    drive(clk, dt, ((0, 1), (0, 0)))
     assert steps == []
-    clockwise(clk, dt)
+    drive(clk, dt, ((1, 0), (1, 1)))
     assert steps == [1]
     knob.close()

@@ -18,6 +18,7 @@
     "buildx",
     "cmdline",
     "debounce",
+    "detent",
     "dialog",
     "dupont",
     "fastapi",
