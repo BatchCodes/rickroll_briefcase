@@ -312,7 +312,36 @@ The user wants an Updates page in the web app and the Android app, with "Update 
 9.4. [x] (bd: rickroll_briefcase-679.36) Android app: a JavaScript bridge, so that the Updates tab shows "Update app" and the app version inside the app.
 9.5. [ ] (bd: none) Test on the Pi and the phone: an update from one release to the next, an update to `main`, an update without a known network in range, and the reconnection of the phone afterwards.
 
-## Phase 10: Future Work
+## Phase 10: Screen Off While Closed
+
+The monitor backlight stays on while the lid is closed, and the monitor draws about 1.6 W to 2 W. The user tested a method on the Pi 5 (2026-11-01) that needs no MOSFET:
+
+- With `drm_client_lib.active=none` in `cmdline.txt`, the kernel has no console client on HDMI. `/proc/fb` is empty. On kernel 6.18 the older setting `drm_kms_helper.fbdev_emulation` is already `N`, and the console comes from `drm_client_lib`.
+- When the player stops, mpv leaves `crtc-2` active with a black picture. The monitor stays awake.
+- `modetest -M vc4 -w 35:DPMS:3` (connector 35 is `HDMI-A-1`) sets the CRTC to `active=0`. The monitor shows "No signal" and then goes into power saving.
+- `docker compose start player` gives a picture again after about 2 s.
+- HDMI-CEC does not work: `cec-ctl` shows no TV in the topology. Unbinding the text console (`vtconsole` bind 0) is not sufficient, because the `fbdev` client keeps the output on.
+
+### Decisions
+
+- Screen policy (user design) -> the screen is on while the lid is open. While the briefcase is disarmed and the lid is closed, the player releases the video output and the screen turns off. When the briefcase is armed, the screen turns on at once. While the briefcase is armed and the lid is closed, the screen turns off after a delay, 60 s by default and configurable. To prime it, disarm and arm again, or use a "Prime" button.
+- Lid opens while the screen is off (user decision) -> play at once. The person misses about the first 2 s while the monitor wakes. This keeps the controller simple, and a primed briefcase is still instant.
+- Disarmed with the lid open (user decision) -> the screen is on, so the knob selection shows.
+- Prime buttons (user decision) -> two buttons in the web app and the Android app (which shows the web app): "Prime" turns the screen on and restarts the delay. "Prime until opened" keeps the screen on until the next lid opening. Both work only while the briefcase is armed.
+- Toggle -> a setting in the web app turns the screen-off behaviour on or off. When it is off, the screen behaves as now.
+- Method -> the player releases the video output through mpv (`force-window=no` and `vid=no`). Then a script in the player container runs the DPMS "off" command. mpv's `run` command starts that script, because the controller only talks to mpv. To turn the screen on, mpv selects the video again, and its mode set turns the output on.
+- `--keep-console` -> the screen-off needs `drm_client_lib.active=none`, which removes the HDMI login prompt. `setup.sh` does not add the setting with `--keep-console`, and the web app then shows the screen-off as not available.
+
+### Implementation Steps
+
+10.1. [ ] (bd: none) Player: add `libdrm-tests` (`modetest`) to the player image, and a script that finds the connector ID of the HDMI port in `--drm-connector` and sets DPMS to off. The script retries for about 2 s, because mpv must release the DRM master first. Add `drm_client_lib.active=none` to the `setup.sh` kernel parameters, except with `--keep-console`. Check the older kernel parameter for Raspberry Pi OS Bookworm.
+10.2. [ ] (bd: none) Controller: an `MpvDisplay` that releases and takes the video output through the mpv IPC (`force-window`, `vid`, `run`). Check that the paused frame at the start position and the audio return after "on", and retry the audio if the HDMI sound failed while the output was off.
+10.3. [ ] (bd: none) Controller: the screen policy from the decisions, with the settings `screen_off_enabled` and `screen_off_delay_sec` (default 60 s), a prime timer, "prime until opened", and the screen state in the status. Add tests for each case: disarmed and closed, arming, armed and closed after the delay, the lid opens while off, prime, prime until opened, and the setting off.
+10.4. [ ] (bd: none) Web app: the toggle and the delay in the "Default behaviour" card, the screen state in the status facts, and the "Prime" and "Prime until opened" buttons on the Status tab while armed. Add the API endpoints and their tests.
+10.5. [ ] (bd: none) Docs: Test 3 results in `docs/software/player.md`, the settings in `docs/software/configuration.md`, and the screen behaviour in the README.
+10.6. [ ] (bd: none) Test on the Pi 5: the screen-off after the delay, the wake time, priming, the sound after the wake, and the monitor power with the paused frame and in power saving.
+
+## Phase 11: Future Work
 
 Not started. Candidate items: an ESP32 power controller for a long standby time, a function for the knob button, a separate amplifier, a web app PIN or login, a shutdown button, video thumbnails, a read-only root file system (overlay) for safer power loss, and a pre-built SD card image with `pi-gen`.
 
