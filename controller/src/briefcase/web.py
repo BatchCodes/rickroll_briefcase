@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import shutil
 from dataclasses import asdict
 from pathlib import Path
@@ -77,6 +78,16 @@ class SimulateRequest(BaseModel):
     knob: Literal[-1, 1] | None = None
 
 
+def _asset_version(static_dir: Path) -> str:
+    """Hash the static files, so a browser loads them again after an update."""
+    digest = hashlib.sha256()
+    for path in sorted(static_dir.iterdir()):
+        if path.is_file():
+            digest.update(path.name.encode())
+            digest.update(path.read_bytes())
+    return digest.hexdigest()[:12]
+
+
 def _bad_request(error: Exception) -> HTTPException:
     if isinstance(error, ValidationError):
         messages = "; ".join(item["msg"] for item in error.errors())
@@ -101,6 +112,7 @@ def create_app(
     app.mount(
         "/static", StaticFiles(directory=str(PACKAGE_DIR / "static")), name="static"
     )
+    asset_version = _asset_version(PACKAGE_DIR / "static")
 
     def video_entry(name: str) -> dict[str, Any]:
         settings = store.get()
@@ -129,7 +141,10 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request) -> HTMLResponse:
         return templates.TemplateResponse(
-            request, "index.html", {"version": __version__}
+            request,
+            "index.html",
+            {"version": __version__, "asset_version": asset_version},
+            headers={"Cache-Control": "no-cache"},
         )
 
     @app.get("/healthz")

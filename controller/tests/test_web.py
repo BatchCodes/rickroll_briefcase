@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from fakes import FakeDisplay, FakePlayer
 from fastapi.testclient import TestClient
@@ -34,6 +36,8 @@ def test_index_page(setup):
     response = client.get("/")
     assert response.status_code == 200
     assert "<h1>Briefcase</h1>" in response.text
+    assert response.headers["cache-control"] == "no-cache"
+    assert re.search(r"/static/app\.js\?v=[0-9a-f]{12}", response.text)
 
 
 def test_healthz_and_status(setup):
