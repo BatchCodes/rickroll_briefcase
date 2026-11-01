@@ -26,7 +26,9 @@ jobs:
       - name: "Run shellcheck"
         run: >-
           docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:stable
-          -x *.sh scripts/*.sh tools/*.sh player/*.sh
+          -x *.sh scripts/*.sh scripts/tests/*.sh tools/*.sh player/*.sh
+      - name: "Test the update script"
+        run: "./scripts/tests/test_update.sh"
 
   docs:
     name: "Markdown lint and spelling"

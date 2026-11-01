@@ -14,6 +14,9 @@ POWER_LATCH_PIN=26
 KNOB_CLK_PIN=22
 KNOB_DT_PIN=23
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+UPDATE_SERVICE_NAME="rickroll-briefcase-update"
+UPDATE_SERVICE_FILE="/etc/systemd/system/${UPDATE_SERVICE_NAME}.service"
+UPDATE_PATH_FILE="/etc/systemd/system/${UPDATE_SERVICE_NAME}.path"
 HOTSPOT_CONNECTION="briefcase-hotspot"
 POLKIT_RULE="/etc/polkit-1/rules.d/50-rickroll-briefcase.rules"
 DNSMASQ_SHARED_CONF="/etc/NetworkManager/dnsmasq-shared.d/rickroll-briefcase.conf"
@@ -664,6 +667,38 @@ check_wake_setting() {
   printf 'The power switch wakes the halted Pi on GPIO 3 (pin 5).\n'
 }
 
+install_update_units() {
+  local owner_group
+
+  log_step "Updates from the web app"
+  owner_group="$(id -g "${SUDO_USER}")"
+  install -d -o "${SUDO_USER}" -g "${owner_group}" -m 0755 "${REPO_DIR}/data/update"
+  cat >"${UPDATE_PATH_FILE}" <<UNIT
+[Unit]
+Description=Start a Rickroll Briefcase update when the web app asks for one
+
+[Path]
+PathExists=${REPO_DIR}/data/update/request.json
+Unit=${UPDATE_SERVICE_NAME}.service
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  cat >"${UPDATE_SERVICE_FILE}" <<UNIT
+[Unit]
+Description=Update the Rickroll Briefcase software
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=${REPO_DIR}/scripts/update.sh
+TimeoutStartSec=30min
+UNIT
+  systemctl daemon-reload
+  systemctl enable --now "${UPDATE_SERVICE_NAME}.path"
+  printf 'The web app can start updates. Log: journalctl -u %s\n' "${UPDATE_SERVICE_NAME}"
+}
+
 install_service() {
   log_step "Start at boot"
   cat >"${SERVICE_FILE}" <<SERVICE
@@ -730,6 +765,7 @@ main() {
   install_permissions
   check_wake_setting
   install_service
+  install_update_units
   start_containers
   print_summary
 }

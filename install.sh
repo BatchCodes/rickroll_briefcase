@@ -45,6 +45,8 @@ What to install:
 
 Other options for this script:
   --full           install the complete source and build the images on the Pi
+  --files-only     download and unpack the files, but do not run setup.sh
+                   (scripts/update.sh uses this)
   --dir PATH       where to put the files, for example ~/rickroll_briefcase (default)
 
 The script needs no git and no GitHub login. A normal install keeps only the
@@ -63,6 +65,7 @@ parse_args() {
   VERSION="${DEFAULT_VERSION}"
   REF=""
   FULL_INSTALL=0
+  FILES_ONLY=0
   SETUP_ARGS=()
 
   while [[ $# -gt 0 ]]; do
@@ -89,6 +92,10 @@ parse_args() {
         ;;
       --ref=* | --branch=*)
         REF="${1#*=}"
+        shift
+        ;;
+      --files-only)
+        FILES_ONLY=1
         shift
         ;;
       --full)
@@ -266,6 +273,10 @@ main() {
   check_install_dir
   choose_source
   download_files
+  if [[ "${FILES_ONLY}" -eq 1 ]]; then
+    printf 'IMAGE_TAG=%s\n' "${IMAGE_TAG}"
+    return 0
+  fi
   run_setup
 }
 
