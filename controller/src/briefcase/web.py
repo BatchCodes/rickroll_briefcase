@@ -164,6 +164,7 @@ def create_app(
         data = (await controller.status_with_position()).to_dict()
         data["power"] = power.status() if power else {"state": "no_switch"}
         data["knob"] = {"enabled": knob is not None}
+        data["volume"] = store.get().volume
         settings = store.get()
         names = library.names()
         if settings.armed_video in names:

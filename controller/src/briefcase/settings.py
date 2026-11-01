@@ -39,12 +39,27 @@ class EndAction(StrEnum):
     STOP = "stop"
 
 
+def _normalise_time_text(text: str) -> str:
+    """Accept "." and spaces as separators, for example "1.30" or "1 30".
+
+    A text with ":" keeps "." as the decimal point, for example "01:05.300",
+    so the times that the web app writes read back correctly.
+    """
+    text = text.strip()
+    if ":" not in text:
+        text = text.replace(".", ":")
+    return re.sub(r"\s+", ":", text)
+
+
 def parse_time(value: str | float | int) -> float:
-    """Convert ``"1:02:03"``, ``"00:30"`` or ``30`` to seconds."""
+    """Convert a time to seconds.
+
+    Examples: ``"1:02:03"``, ``"00:30"``, ``"1.30"``, ``"1 30"`` or ``30``.
+    """
     if isinstance(value, int | float):
         seconds = float(value)
     else:
-        text = value.strip()
+        text = _normalise_time_text(value)
         match = TIME_PATTERN.match(text)
         if match:
             hours = int(match.group("h") or 0)
@@ -96,7 +111,11 @@ class VideoSettings(BaseModel):
     @classmethod
     def _parse_cues(cls, value: object) -> object:
         if isinstance(value, str):
-            value = [part for part in re.split(r"[,\s]+", value) if part]
+            # Commas and semicolons separate the cue points. A space belongs
+            # to a time, for example "1 30".
+            value = [
+                part.strip() for part in re.split(r"[,;\n]+", value) if part.strip()
+            ]
         if isinstance(value, list):
             return sorted({parse_time(item) for item in value})
         return value

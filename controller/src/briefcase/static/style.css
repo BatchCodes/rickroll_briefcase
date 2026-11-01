@@ -417,3 +417,12 @@ h3 {
 .tab-hidden {
   display: none;
 }
+
+.status-volume {
+  margin: 4px 0 8px;
+}
+
+.status-volume input {
+  padding: 0;
+  accent-color: var(--accent);
+}

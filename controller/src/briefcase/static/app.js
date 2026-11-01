@@ -68,6 +68,16 @@ let lastStatus = null;
 // True while a finger or the mouse drags the position bar.
 let draggingPosition = false;
 let lastArmedVideo = null;
+let lastVolumeInput = 0;
+const VOLUME_IDLE_MS = 1500;
+
+function showVolume(volume) {
+  const form = $("#settings-form");
+  form.volume.value = volume;
+  $("#status-volume").value = volume;
+  $("#volume-value").textContent = volume;
+  $("#status-volume-value").textContent = volume;
+}
 let videos = [];
 
 async function api(method, path, body) {
@@ -104,6 +114,10 @@ function showError(message) {
 
 function renderStatus(status) {
   lastStatus = status;
+  // Show a volume change from another phone, but not while this one moves a slider.
+  if (status.volume !== undefined && Date.now() - lastVolumeInput > VOLUME_IDLE_MS) {
+    showVolume(status.volume);
+  }
   if (status.armed_video !== undefined && status.armed_video !== lastArmedVideo) {
     lastArmedVideo = status.armed_video;
     refreshAll().catch(() => {});
@@ -204,8 +218,7 @@ function renderSettings(settings) {
   form.selection_mode.value = settings.selection_mode;
   form.default_start.value = settings.default_start;
   form.resume_window.value = settings.resume_window_sec;
-  form.volume.value = settings.volume;
-  $("#volume-value").textContent = settings.volume;
+  if (Date.now() - lastVolumeInput > VOLUME_IDLE_MS) showVolume(settings.volume);
   renderVideoTable(settings);
 }
 
@@ -602,8 +615,9 @@ function bindEvents() {
   );
 
   const form = $("#settings-form");
-  // The volume applies while the slider moves. Send at most one request per
-  // VOLUME_SEND_MS, and always send the last value.
+  // The volume applies while a slider moves. Send at most one request per
+  // VOLUME_SEND_MS, and always send the last value. The Status and Playback
+  // sliders show the same value.
   let volumeTimer = null;
   let volumeSent = null;
   const sendVolume = () => {
@@ -617,10 +631,13 @@ function bindEvents() {
     api("POST", "/api/volume", { volume }).catch((error) => showError(error.message));
     volumeTimer = setTimeout(sendVolume, VOLUME_SEND_MS);
   };
-  form.volume.addEventListener("input", () => {
-    $("#volume-value").textContent = form.volume.value;
-    if (volumeTimer === null) sendVolume();
-  });
+  for (const slider of [form.volume, $("#status-volume")]) {
+    slider.addEventListener("input", () => {
+      lastVolumeInput = Date.now();
+      showVolume(slider.value);
+      if (volumeTimer === null) sendVolume();
+    });
+  }
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const body = {

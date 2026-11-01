@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 15 draws the content of an app that targets API level 35
+         behind the system bars and the title bar. Then the title bar hides
+         the tab bar of the web app. Keep the content below the bars. -->
+    <style name="Theme.Briefcase" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+</resources>

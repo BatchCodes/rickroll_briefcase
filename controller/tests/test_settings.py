@@ -20,6 +20,11 @@ from briefcase.settings import (
         ("1:02:03", 3723.0),
         ("90", 90.0),
         ("01:30.5", 90.5),
+        ("1.30", 90.0),
+        ("1 30", 90.0),
+        ("1 02 03", 3723.0),
+        ("  0.30 ", 30.0),
+        ("01:05.300", 65.3),
         (12, 12.0),
     ],
 )
@@ -53,7 +58,7 @@ def test_video_start_overrides_default():
 
 
 def test_cue_points_parse_from_text():
-    video = VideoSettings(cue_points_sec="00:30, 10 1:00")
+    video = VideoSettings(cue_points_sec="00:30, 10; 1.00")
     assert video.cue_points_sec == [10.0, 30.0, 60.0]
 
 
