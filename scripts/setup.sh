@@ -8,6 +8,10 @@ ENV_FILE="${REPO_DIR}/.env"
 BOOT_DIR="/boot/firmware"
 CONFIG_TXT="${BOOT_DIR}/config.txt"
 CMDLINE_TXT="${BOOT_DIR}/cmdline.txt"
+DRM_SYS_DIR="/sys/class/drm"
+ASOUND_CARDS_FILE="/proc/asound/cards"
+DEFAULT_HDMI_CONNECTOR="HDMI-A-1"
+HDMI_MODE="1920x1080@60D"
 SERVICE_NAME="rickroll-briefcase"
 POWER_SWITCH_PIN=3
 POWER_LATCH_PIN=26
@@ -30,7 +34,6 @@ TOOL_PACKAGES=(tmux neovim magic-wormhole)
 CONFIG_BEGIN="# rickroll_briefcase begin"
 CONFIG_END="# rickroll_briefcase end"
 CMDLINE_PARAMS=(
-  "video=HDMI-A-1:1920x1080@60D"
   "consoleblank=0"
   "logo.nologo"
   "quiet"
@@ -403,7 +406,7 @@ write_env() {
   set_env_value BRIEFCASE_INPUT_BACKEND gpio
   set_env_value BRIEFCASE_PLAYER_OUTPUT drm
   set_env_value BRIEFCASE_HTTP_PORT 80
-  set_env_value BRIEFCASE_PLAYER_EXTRA_ARGS "$(hdmi_audio_args)"
+  set_env_value BRIEFCASE_PLAYER_EXTRA_ARGS "$(hdmi_player_args)"
   set_env_value BRIEFCASE_POWER_MODE "${POWER_MODE}"
   if [[ "${KNOB_MODE}" == "on" ]]; then
     set_env_value BRIEFCASE_KNOB_CLK_PIN "${KNOB_CLK_PIN}"
@@ -475,15 +478,68 @@ set_env_value() {
   rm -f "${temp_file}"
 }
 
-hdmi_audio_args() {
-  local card_name
+connected_hdmi_connector() {
+  local status_file
+  local connector_dir
+  local connector_name
 
-  card_name="$(awk -F'[][]' '/vc4hdmi/ { gsub(/ /, "", $2); print $2; exit }' /proc/asound/cards 2>/dev/null || true)"
-  if [[ -z "${card_name}" ]]; then
-    printf '\n'
+  for status_file in "${DRM_SYS_DIR}"/card*-HDMI-A-*/status; do
+    if [[ ! -f "${status_file}" ]] || [[ "$(cat "${status_file}")" != "connected" ]]; then
+      continue
+    fi
+    connector_dir="$(dirname -- "${status_file}")"
+    # A port that cmdline.txt forces on reports "connected" with no monitor, but it has no EDID.
+    if [[ "$(wc -c <"${connector_dir}/edid" 2>/dev/null || printf '0')" -eq 0 ]]; then
+      continue
+    fi
+    connector_name="$(basename -- "${connector_dir}")"
+    printf '%s\n' "${connector_name#card*-}"
+    return 0
+  done
+  return 1
+}
+
+choose_hdmi_connector() {
+  local forced_connector=""
+
+  log_step "HDMI port"
+  if HDMI_CONNECTOR="$(connected_hdmi_connector)"; then
+    printf 'The screen is on %s.\n' "${HDMI_CONNECTOR}"
     return 0
   fi
-  printf -- '--audio-device=alsa/sysdefault:CARD=%s\n' "${card_name}"
+
+  if [[ -f "${CMDLINE_TXT}" ]]; then
+    forced_connector="$(grep -o 'video=HDMI-A-[0-9]*' "${CMDLINE_TXT}" | head -n 1 || true)"
+  fi
+  HDMI_CONNECTOR="${forced_connector#video=}"
+  HDMI_CONNECTOR="${HDMI_CONNECTOR:-${DEFAULT_HDMI_CONNECTOR}}"
+  printf 'warning: no screen answers on an HDMI port, so the player uses %s. Connect the screen and run this script again to find its port.\n' "${HDMI_CONNECTOR}" >&2
+}
+
+hdmi_audio_card() {
+  local wanted_card
+  local card_names
+
+  # HDMI-A-1 is HDMI 0 with the sound card vc4hdmi0, HDMI-A-2 is HDMI 1 with vc4hdmi1.
+  wanted_card="vc4hdmi$((${HDMI_CONNECTOR##*-} - 1))"
+  card_names="$(awk -F'[][]' '/vc4hdmi/ { gsub(/ /, "", $2); print $2 }' "${ASOUND_CARDS_FILE}" 2>/dev/null || true)"
+  if grep -qx -- "${wanted_card}" <<<"${card_names}"; then
+    printf '%s\n' "${wanted_card}"
+    return 0
+  fi
+  # A Pi with one HDMI port has a single card, for example vc4hdmi.
+  head -n 1 <<<"${card_names}"
+}
+
+hdmi_player_args() {
+  local card_name
+
+  card_name="$(hdmi_audio_card)"
+  if [[ -z "${card_name}" ]]; then
+    printf -- '--drm-connector=%s\n' "${HDMI_CONNECTOR}"
+    return 0
+  fi
+  printf -- '--drm-connector=%s --audio-device=alsa/sysdefault:CARD=%s\n' "${HDMI_CONNECTOR}" "${card_name}"
 }
 
 configure_boot() {
@@ -530,7 +586,9 @@ ${CONFIG_END}"
   install -m 0755 "${temp_file}" "${CONFIG_TXT}"
   rm -f "${temp_file}"
 
-  for param in "${CMDLINE_PARAMS[@]}"; do
+  # Remove the forced mode of an earlier port, so that only one port reports "connected".
+  sed -i -E '1 s/ ?video=HDMI-A-[0-9]+:[^ ]*//g' "${CMDLINE_TXT}"
+  for param in "${CMDLINE_PARAMS[@]}" "video=${HDMI_CONNECTOR}:${HDMI_MODE}"; do
     if ! grep -qw -- "${param}" "${CMDLINE_TXT}"; then
       sed -i "1 s/\$/ ${param}/" "${CMDLINE_TXT}"
     fi
@@ -763,6 +821,7 @@ main() {
   install_docker
   install_tools
   add_user_to_groups
+  choose_hdmi_connector
   write_env
   store_options
   configure_boot

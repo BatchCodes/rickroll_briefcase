@@ -83,13 +83,13 @@ The power bank has two USB-C outputs. Connect one output to the Pi and the other
 
 The Raspberry Pi 4 is the primary test board of the briefcase.
 
-| Connector                                      | Connect to                                       |
-| ---------------------------------------------- | ------------------------------------------------ |
-| USB-C power input                              | a USB-C output of the power bank. Use 5 V 3 A.   |
-| micro-HDMI port HDMI 0, next to the USB-C port | the monitor, with a micro-HDMI to HDMI cable.    |
-| micro-HDMI port HDMI 1                         | nothing. `setup.sh` sends the picture to HDMI 0. |
-| 3.5 mm audio jack                              | the optional amplifier, if you add one.          |
-| Ethernet                                       | your router, to update the software (optional).  |
+| Connector                                      | Connect to                                      |
+| ---------------------------------------------- | ----------------------------------------------- |
+| USB-C power input                              | a USB-C output of the power bank. Use 5 V 3 A.  |
+| micro-HDMI port HDMI 0, next to the USB-C port | the monitor, with a micro-HDMI to HDMI cable.   |
+| micro-HDMI port HDMI 1                         | nothing.                                        |
+| 3.5 mm audio jack                              | the optional amplifier, if you add one.         |
+| Ethernet                                       | your router, to update the software (optional). |
 
 The Pi 4 wakes from halt when GPIO 3 goes low. Thus you can use the power switch before you have the power latch. Use `--power-switch` for the switch alone, and `--power-latch` when the latch is fitted.
 
@@ -99,13 +99,15 @@ The Pi 4 wakes from halt when GPIO 3 goes low. Thus you can use the power switch
 
 The Raspberry Pi 5 is a supported board.
 
-| Connector                                      | Connect to                                       |
-| ---------------------------------------------- | ------------------------------------------------ |
-| USB-C power input                              | a USB-C output of the power bank.                |
-| micro-HDMI port HDMI 0, next to the USB-C port | the monitor, with a micro-HDMI to HDMI cable.    |
-| micro-HDMI port HDMI 1                         | nothing. `setup.sh` sends the picture to HDMI 0. |
+| Connector                                      | Connect to                                    |
+| ---------------------------------------------- | --------------------------------------------- |
+| USB-C power input                              | a USB-C output of the power bank.             |
+| micro-HDMI port HDMI 0, next to the USB-C port | the monitor, with a micro-HDMI to HDMI cable. |
+| micro-HDMI port HDMI 1                         | nothing.                                      |
 
-The Pi 5 has no 3.5 mm audio jack. The sound goes through HDMI to the monitor. If the monitor shows no picture, make sure that the cable is in HDMI 0.
+The Pi 5 has no 3.5 mm audio jack. The sound goes through HDMI to the monitor.
+
+HDMI 1 also works. `setup.sh` finds the port that has the monitor and sends the picture and the sound to that port. Connect the monitor and turn it on before you run `setup.sh`. If you move the cable to the other port later, run `setup.sh` again.
 
 The Pi 5 asks for a 5 V 5 A supply. A normal USB-C power bank gives 5 V 3 A. With 3 A, the Pi 5 can show a warning, and it limits the current of its USB ports. The briefcase does not use the USB ports, so it operates with 3 A.
 

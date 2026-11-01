@@ -150,7 +150,7 @@ The Status tab of the web app shows "No sound" when the player cannot open the H
    grep PLAYER_EXTRA_ARGS .env
    ```
 
-2. Check that the monitor is connected to `HDMI-A-1` (HDMI 0), and that its EDID reports audio. The EDID must have more than 0 bytes, and `edid-decode` must show an "Audio Data Block".
+2. Check that the monitor is connected to the port in `--drm-connector` in `BRIEFCASE_PLAYER_EXTRA_ARGS`, and that its EDID reports audio. `HDMI-A-1` is HDMI 0 and `HDMI-A-2` is HDMI 1. The EDID must have more than 0 bytes, and `edid-decode` must show an "Audio Data Block".
 
    ```bash
    for c in /sys/class/drm/card*-HDMI-A-*; do echo "$c: $(cat $c/status), EDID $(wc -c < $c/edid) bytes"; done
