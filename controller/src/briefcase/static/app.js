@@ -156,6 +156,7 @@ function renderStatus(status) {
     nowText = `${status.current_video}: continues if opened within ${Math.ceil(status.resume_remaining_sec)} s`;
   }
   $("#now-video").textContent = nowText;
+  $("#now-video").title = nowText;
   $("#lid-state").textContent = status.lid_open ? "Open" : "Closed";
   $("#arm-state").textContent = status.armed ? "Armed" : "Disarmed";
   $("#player-state").textContent = status.player_connected ? "Connected" : "Offline";
