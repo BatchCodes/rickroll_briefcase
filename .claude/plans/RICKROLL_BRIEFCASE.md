@@ -306,10 +306,10 @@ The user wants an Updates page in the web app and the Android app, with "Update 
 
 ### Implementation Steps
 
-9.1. [ ] (bd: none) Unattended `setup.sh`: store all options in `.env` and use them on a later run (fix `rickroll_briefcase-86b`), keep an existing hotspot connection without a password prompt, and add a `--non-interactive` flag that fails instead of prompting.
-9.2. [ ] (bd: none) Host update script and systemd units: `scripts/update.sh` (switch to a known network if there is no internet, find the target release or `main`, run the installer for it, go back to the hotspot, write the status file), plus a systemd path unit and service that `setup.sh` installs. Add tests for the target selection.
-9.3. [ ] (bd: none) Controller and web app: an Updates tab with the installed versions, the update options, the "Update briefcase" button, and the status and last result from the status file.
-9.4. [ ] (bd: none) Android app: a JavaScript bridge, so that the Updates tab shows "Update app" and the app version inside the app.
+9.1. [x] (bd: rickroll_briefcase-679.33) Unattended `setup.sh`: store all options in `.env` and use them on a later run (fix `rickroll_briefcase-86b`), keep an existing hotspot connection without a password prompt, and add a `--non-interactive` flag that fails instead of prompting.
+9.2. [x] (bd: rickroll_briefcase-679.34) Host update script and systemd units: `scripts/update.sh` (switch to a known network if there is no internet, find the target release or `main`, run the installer for it, go back to the hotspot, write the status file), plus a systemd path unit and service that `setup.sh` installs. Add tests for the target selection.
+9.3. [x] (bd: rickroll_briefcase-679.35) Controller and web app: an Updates tab with the installed versions, the update options, the "Update briefcase" button, and the status and last result from the status file.
+9.4. [x] (bd: rickroll_briefcase-679.36) Android app: a JavaScript bridge, so that the Updates tab shows "Update app" and the app version inside the app.
 9.5. [ ] (bd: none) Test on the Pi and the phone: an update from one release to the next, an update to `main`, an update without a known network in range, and the reconnection of the phone afterwards.
 
 ## Phase 10: Future Work
@@ -359,3 +359,4 @@ Not started. Candidate items: an ESP32 power controller for a long standby time,
 - User request: the web app Playback section shows a table of all videos with their start positions instead of the "Video to play" dropdown. A tap on a row selects the video. The start positions are editable in the table, and an edit sets the fixed start mode. The status includes `armed_video`, so the highlight follows the knob. Tracked as bd task `rickroll_briefcase-679.27`.
 - Step 8.3: a signed release build with a throwaway key passed `apksigner verify`, with the version name and code from the environment. Another person changed controller files, `cspell.json` and `configuration.md` at the same time. The phase 8 commits contain only the Android files, the workflows, the Android documentation and the plan.
 - Step 8.4: Android lint reported `UnsafeIntentLaunch` when the installer status went to the exported `MainActivity`: another app could send it an intent to start. The installer status now goes to the non-exported `InstallStatusReceiver`.
+- Step 9.4 also took a user request from another session: inside the app, the title bar shows "Briefcase v<briefcase version>" with the subtitle "App <app version>", and the web page hides its own header. A normal browser keeps the header. The bridge was not tested in a browser or an emulator. The phone test must check it.
