@@ -22,6 +22,9 @@ import java.security.MessageDigest
 class AppUpdater(private val context: Context) {
     private val connectivity = context.getSystemService(ConnectivityManager::class.java)
 
+    /** The GitHub releases list as JSON. Run on a background thread. */
+    fun releasesJson(): String = download(Updates.RELEASES_URL).toString(Charsets.UTF_8)
+
     /** Find the newest release that is newer than this app. Run on a background thread. */
     fun findUpdate(includePreReleases: Boolean): AppRelease? {
         val installed = installedVersion()

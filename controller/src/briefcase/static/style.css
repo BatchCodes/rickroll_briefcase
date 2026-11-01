@@ -522,3 +522,23 @@ body.in-app > header {
 .status-facts #power-fact {
   grid-column: 1 / -1;
 }
+
+.update-available {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--ok) 22%, var(--card));
+}
+
+.update-available.update-none {
+  font-weight: 400;
+  color: var(--muted);
+  background: transparent;
+  padding: 0;
+}
+
+.tabs button.has-update::after {
+  content: " ●";
+  color: var(--ok);
+}

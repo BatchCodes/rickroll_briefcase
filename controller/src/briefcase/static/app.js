@@ -575,6 +575,152 @@ async function uploadAll(files) {
   await refreshAll();
 }
 
+const RELEASES_URL = "https://api.github.com/repos/BatchCodes/rickroll_briefcase/releases?per_page=30";
+const RELEASE_CHECK_MS = 10 * 60 * 1000;
+let releasesJson = null;
+let lastReleaseCheck = 0;
+let lastUpdatesData = null;
+
+// Compare versions such as "0.2.0" and "0.2.0-rc.1". Return null for text
+// that is not a version, for example "latest" or "sha-3f2a1c9".
+function parseVersion(text) {
+  const match = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.]+))?$/.exec((text || "").trim());
+  if (!match) return null;
+  return { numbers: match.slice(1, 4).map(Number), pre: match[4] ? match[4].split(".") : [] };
+}
+
+function compareVersions(left, right) {
+  for (let index = 0; index < 3; index += 1) {
+    if (left.numbers[index] !== right.numbers[index]) {
+      return left.numbers[index] - right.numbers[index];
+    }
+  }
+  if (!left.pre.length || !right.pre.length) return right.pre.length - left.pre.length;
+  for (let index = 0; index < Math.min(left.pre.length, right.pre.length); index += 1) {
+    const a = left.pre[index];
+    const b = right.pre[index];
+    if (a === b) continue;
+    const aNumber = /^\d+$/.test(a);
+    const bNumber = /^\d+$/.test(b);
+    if (aNumber && bNumber) return Number(a) - Number(b);
+    if (aNumber) return -1;
+    if (bNumber) return 1;
+    return a < b ? -1 : 1;
+  }
+  return left.pre.length - right.pre.length;
+}
+
+// The newest release tag, skipping drafts and, unless allowed, pre-releases.
+// With needApk, the release must have the Android app attached.
+function newestTag(releases, includePreReleases, needApk) {
+  let newest = null;
+  for (const release of releases) {
+    if (release.draft || (release.prerelease && !includePreReleases)) continue;
+    const version = parseVersion(release.tag_name);
+    if (!version) continue;
+    if (needApk) {
+      const apk = `briefcase-${release.tag_name}.apk`;
+      if (!(release.assets || []).some((asset) => asset.name === apk)) continue;
+    }
+    if (!newest || compareVersions(version, newest.version) > 0) {
+      newest = { tag: release.tag_name, version };
+    }
+  }
+  return newest;
+}
+
+function showAvailable(element, text, available) {
+  element.hidden = !text;
+  element.textContent = text || "";
+  element.classList.toggle("update-none", !available);
+}
+
+function renderAvailableUpdates() {
+  const tabButton = $('.tabs [data-tab="updates"]');
+  const briefcaseLine = $("#briefcase-update-available");
+  const appLine = $("#app-update-available");
+  if (!releasesJson) {
+    const text = lastReleaseCheck ? "Cannot check GitHub: the phone has no internet." : "";
+    showAvailable(briefcaseLine, text, false);
+    showAvailable(appLine, "", false);
+    tabButton.classList.remove("has-update");
+    return;
+  }
+  const target = $("#update-target").value;
+  const includePre = target !== "release";
+  let anyUpdate = false;
+
+  const installedText = lastUpdatesData ? lastUpdatesData.installed_version : null;
+  const installed = parseVersion(installedText);
+  const newest = newestTag(releasesJson, includePre, false);
+  if (!newest) {
+    const hint = includePre ? "" : ' To see pre-releases, select "Newest release or pre-release".';
+    showAvailable(briefcaseLine, `GitHub has no release of this type yet.${hint}`, false);
+  } else if (!installed) {
+    showAvailable(briefcaseLine, `Newest release: ${newest.tag}. The installed version (${installedText || "unknown"}) is a development build.`, false);
+  } else if (compareVersions(newest.version, installed) > 0) {
+    showAvailable(briefcaseLine, `Briefcase update available: ${newest.tag}`, true);
+    anyUpdate = true;
+  } else {
+    showAvailable(briefcaseLine, "The briefcase is up to date.", false);
+  }
+
+  const app = window.BriefcaseApp;
+  if (app) {
+    let appVersion = null;
+    try {
+      appVersion = parseVersion(app.version());
+    } catch (error) {
+      appVersion = null;
+    }
+    const newestApk = newestTag(releasesJson, includePre, true);
+    if (appVersion && newestApk && compareVersions(newestApk.version, appVersion) > 0) {
+      showAvailable(appLine, `App update available: ${newestApk.tag}`, true);
+      anyUpdate = true;
+    } else if (appVersion) {
+      showAvailable(appLine, "The app is up to date.", false);
+    } else {
+      showAvailable(appLine, "", false);
+    }
+  }
+  tabButton.classList.toggle("has-update", anyUpdate);
+}
+
+// The Android app calls this with the releases JSON, or with null when the
+// phone has no internet.
+window.briefcaseReleases = (json) => {
+  lastReleaseCheck = Date.now();
+  try {
+    releasesJson = json ? JSON.parse(json) : null;
+  } catch (error) {
+    releasesJson = null;
+  }
+  renderAvailableUpdates();
+};
+
+async function checkReleases(force) {
+  if (!force && Date.now() - lastReleaseCheck < RELEASE_CHECK_MS) return;
+  lastReleaseCheck = Date.now();
+  const app = window.BriefcaseApp;
+  if (app && app.checkReleases) {
+    // Inside the app, the page uses the briefcase Wi-Fi only. The app asks
+    // GitHub over the phone's internet and calls window.briefcaseReleases.
+    app.checkReleases();
+    return;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(RELEASES_URL, { signal: controller.signal });
+    releasesJson = response.ok ? await response.json() : null;
+  } catch (error) {
+    releasesJson = null;
+  } finally {
+    clearTimeout(timer);
+  }
+  renderAvailableUpdates();
+}
+
 function renderUpdates(data) {
   const available = Boolean(data.available);
   $("#update-controls").hidden = !available;
@@ -588,6 +734,8 @@ function renderUpdates(data) {
   message.hidden = !(status && status.message);
   message.textContent = status ? `${status.message} (${status.updated_at || ""})` : "";
   $("#update-button").disabled = Boolean(data.running);
+  lastUpdatesData = data;
+  renderAvailableUpdates();
 }
 
 async function refreshUpdates() {
@@ -868,6 +1016,9 @@ bindGestures();
 setUpNativeApp();
 showTab(currentTab());
 refreshUpdates();
+checkReleases(true);
+$("#update-target").addEventListener("change", renderAvailableUpdates);
+setInterval(() => checkReleases(false), 60 * 1000);
 setInterval(() => {
   if (currentTab() === "updates") refreshUpdates();
 }, UPDATE_POLL_MS);

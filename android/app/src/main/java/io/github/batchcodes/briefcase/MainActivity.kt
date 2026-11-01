@@ -40,6 +40,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import org.json.JSONObject
 
 /**
  * One screen: the briefcase web app in a web view.
@@ -463,6 +464,23 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun checkForUpdates() {
             runOnUiThread { checkForUpdates(manual = true) }
+        }
+
+        /**
+         * Ask GitHub for the releases over the phone's internet, then give
+         * the JSON (or null without internet) to window.briefcaseReleases.
+         */
+        @JavascriptInterface
+        fun checkReleases() {
+            Thread {
+                val json = runCatching { updater.releasesJson() }.getOrNull()
+                val argument = if (json != null) JSONObject.quote(json) else "null"
+                runOnUiThread {
+                    if (!isDestroyed) {
+                        webView.evaluateJavascript("window.briefcaseReleases($argument)", null)
+                    }
+                }
+            }.start()
         }
 
         /** The web app gives the briefcase version, for example "0.1.0". */
