@@ -567,6 +567,13 @@ async function refreshUpdates() {
 function setUpNativeApp() {
   const app = window.BriefcaseApp;
   if (!app) return;
+  // The app title bar shows the name and both versions, so hide the page header.
+  document.body.classList.add("in-app");
+  try {
+    app.setBriefcaseVersion($("header .version").textContent);
+  } catch (error) {
+    // An older app has no setBriefcaseVersion. Keep its title.
+  }
   $("#app-update-native").hidden = false;
   $("#app-update-web").hidden = true;
   try {

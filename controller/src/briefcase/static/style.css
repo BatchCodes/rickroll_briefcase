@@ -430,3 +430,7 @@ h3 {
 a {
   color: var(--accent);
 }
+
+body.in-app > header {
+  display: none;
+}

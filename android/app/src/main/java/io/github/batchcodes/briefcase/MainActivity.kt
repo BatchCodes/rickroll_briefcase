@@ -21,6 +21,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -64,6 +65,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         buildViews()
+        showVersions(briefcaseVersion = null)
         checkAndLoad()
         val dayMs = 24L * 60 * 60 * 1000
         if (System.currentTimeMillis() - preferences.getLong(KEY_LAST_UPDATE_CHECK, 0) > dayMs) {
@@ -144,6 +146,7 @@ class MainActivity : Activity() {
             visibility = View.GONE
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
+            addJavascriptInterface(AppBridge(), BRIDGE_NAME)
             webViewClient = object : WebViewClient() {
                 override fun onReceivedError(
                     view: WebView,
@@ -319,6 +322,39 @@ class MainActivity : Activity() {
         connectivity.bindProcessToNetwork(null)
     }
 
+    /**
+     * The web app calls these methods as `window.BriefcaseApp`. The web view
+     * loads only the briefcase web app, and the methods change nothing
+     * without a confirmation from the user.
+     */
+    private inner class AppBridge {
+        @JavascriptInterface
+        fun version(): String = updater.installedVersion()
+
+        @JavascriptInterface
+        fun checkForUpdates() {
+            runOnUiThread { checkForUpdates(manual = true) }
+        }
+
+        /** The web app gives the briefcase version, for example "0.1.0". */
+        @JavascriptInterface
+        fun setBriefcaseVersion(version: String) {
+            val clean = version.trim().removePrefix("v").take(MAX_VERSION_LENGTH)
+            runOnUiThread { showVersions(briefcaseVersion = clean.ifEmpty { null }) }
+        }
+    }
+
+    /** The title bar shows the briefcase version and, below it, the app version. */
+    private fun showVersions(briefcaseVersion: String?) {
+        val bar = actionBar ?: return
+        bar.title = if (briefcaseVersion != null) {
+            getString(R.string.title_with_version, briefcaseVersion)
+        } else {
+            getString(R.string.app_name)
+        }
+        bar.subtitle = getString(R.string.app_version, updater.installedVersion())
+    }
+
     private fun showSettings(afterSave: (() -> Unit)? = null, hint: String? = null) {
         val density = resources.displayMetrics.density
         val nameField = EditText(this).apply {
@@ -431,6 +467,8 @@ class MainActivity : Activity() {
 
     private companion object {
         const val PREFERENCES = "briefcase"
+        const val BRIDGE_NAME = "BriefcaseApp"
+        const val MAX_VERSION_LENGTH = 32
         const val KEY_NETWORK_NAME = "network_name"
         const val KEY_PASSWORD = "password"
         const val REQUEST_FILES = 1
