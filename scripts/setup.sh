@@ -21,6 +21,8 @@ FRIENDLY_NAME="briefcase.lan"
 DEFAULT_IMAGE_OWNER="batchcodes"
 HOTSPOT_ADDRESS="10.42.0.1"
 DOCKER_INSTALL_URL="https://get.docker.com"
+# Tools for maintenance over SSH: tmux, Neovim and magic-wormhole (file copy).
+TOOL_PACKAGES=(tmux neovim magic-wormhole)
 CONFIG_BEGIN="# rickroll_briefcase begin"
 CONFIG_END="# rickroll_briefcase end"
 CMDLINE_PARAMS=(
@@ -46,6 +48,8 @@ The script is safe to run again.
   --no-hotspot         do not make the Wi-Fi access point
   --power-save         turn off Bluetooth and the board LEDs to decrease power
   --keep-console       keep the login prompt on the HDMI screen
+  --no-tools           do not install the maintenance tools (tmux, nvim and
+                       magic-wormhole)
   --power-switch       use a power switch on GPIO 3 (pin 5) to ground: "off"
                        shuts the Pi down cleanly, "on" wakes the halted Pi.
                        Use this before the power latch hardware is fitted
@@ -80,6 +84,7 @@ parse_args() {
   MAKE_HOTSPOT=1
   POWER_SAVE=0
   KEEP_CONSOLE=0
+  INSTALL_TOOLS=1
   BUILD_LOCALLY=0
   IMAGE_TAG="latest"
   POWER_MODE=""
@@ -114,6 +119,10 @@ parse_args() {
         ;;
       --no-hotspot)
         MAKE_HOTSPOT=0
+        shift
+        ;;
+      --no-tools)
+        INSTALL_TOOLS=0
         shift
         ;;
       --power-save)
@@ -243,6 +252,15 @@ install_docker() {
     curl -fsSL "${DOCKER_INSTALL_URL}" | sh
   fi
   systemctl enable --now docker
+}
+
+install_tools() {
+  if [[ "${INSTALL_TOOLS}" -eq 0 ]]; then
+    return
+  fi
+  log_step "Maintenance tools"
+  apt-get update
+  apt-get install -y "${TOOL_PACKAGES[@]}"
 }
 
 add_user_to_groups() {
@@ -603,6 +621,7 @@ main() {
   read_password
   check_password
   install_docker
+  install_tools
   add_user_to_groups
   write_env
   configure_boot

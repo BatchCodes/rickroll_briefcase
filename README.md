@@ -51,7 +51,7 @@ Run this command on the Pi as your normal user, for example over SSH:
 curl -fsSL https://raw.githubusercontent.com/BatchCodes/rickroll_briefcase/main/install.sh | bash -s -- --country DE
 ```
 
-Use your own Wi-Fi country code instead of `DE`. The command downloads the files that the Pi needs to `~/rickroll_briefcase`. It needs no git and no GitHub login. Then it runs `scripts/setup.sh` with `sudo`. The setup asks for a Wi-Fi password. It installs Docker, sets up the `BRIEFCASE` access point, downloads the container images and starts the briefcase at each boot.
+Use your own Wi-Fi country code instead of `DE`. The command downloads the files that the Pi needs to `~/rickroll_briefcase`. It needs no git and no GitHub login. Then it runs `scripts/setup.sh` with `sudo`. The setup asks for a Wi-Fi password. It installs Docker and the maintenance tools `tmux`, `nvim` and `magic-wormhole`, sets up the `BRIEFCASE` access point, downloads the container images and starts the briefcase at each boot.
 
 To install the complete source and build the images on the Pi instead, use `full_install.sh`. The build takes approximately 10 to 20 minutes on a Pi 4.
 
