@@ -21,6 +21,7 @@ RUNTIME_FILES=(
   "scripts/write_env.sh"
   "scripts/pi_check.sh"
   "scripts/update.sh"
+  "scripts/hotspot.sh"
 )
 
 usage() {

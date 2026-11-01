@@ -14,6 +14,7 @@ POWER_LATCH_PIN=26
 KNOB_CLK_PIN=22
 KNOB_DT_PIN=23
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+HOTSPOT_COMMAND="/usr/local/bin/briefcase-hotspot"
 UPDATE_SERVICE_NAME="rickroll-briefcase-update"
 UPDATE_SERVICE_FILE="/etc/systemd/system/${UPDATE_SERVICE_NAME}.service"
 UPDATE_PATH_FILE="/etc/systemd/system/${UPDATE_SERVICE_NAME}.path"
@@ -667,6 +668,12 @@ check_wake_setting() {
   printf 'The power switch wakes the halted Pi on GPIO 3 (pin 5).\n'
 }
 
+install_commands() {
+  log_step "Commands"
+  ln -sfn "${REPO_DIR}/scripts/hotspot.sh" "${HOTSPOT_COMMAND}"
+  printf 'Run briefcase-hotspot to switch the Pi from a known Wi-Fi network back to the hotspot.\n'
+}
+
 install_update_units() {
   local owner_group
 
@@ -766,6 +773,7 @@ main() {
   check_wake_setting
   install_service
   install_update_units
+  install_commands
   start_containers
   print_summary
 }

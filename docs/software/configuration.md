@@ -62,6 +62,16 @@ Both switches connect their GPIO pin to ground when they are closed. The control
 
 `scripts/setup.sh` stores its options in `.env`, with the prefix `BRIEFCASE_SETUP_`: the network name, the country, and the hotspot, power-save, console, tools and build choices. A later run without an option uses the stored value, so an update from the phone keeps the options of the first installation. Each option has a flag to change it again, for example `--no-power-save` after `--power-save`. An existing access point keeps its password, unless you give `--password`.
 
+### Back to the Hotspot
+
+The web app can switch the Pi to a known Wi-Fi network, for example for an update. To switch it back to the hotspot from a terminal on the Pi, for example over SSH, run:
+
+```bash
+briefcase-hotspot
+```
+
+`setup.sh` installs this command. It runs `scripts/hotspot.sh`. If your SSH session uses the other Wi-Fi network, the session stops, but the switch completes. Connect to the briefcase hotspot to continue.
+
 ### Updates From the Web App
 
 "Update briefcase" on the Updates tab writes `data/update/request.json`. The systemd unit `rickroll-briefcase-update.path`, which `setup.sh` installs, then starts `scripts/update.sh` as root. The script connects to a known Wi-Fi network if the Pi has no internet, installs the selected version (the newest release, the newest pre-release, or `main`), and goes back to the hotspot. It writes its progress to `data/update/status.json`, and the Updates tab shows it. The full log is in the journal:
