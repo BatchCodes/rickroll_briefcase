@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A briefcase with a play symbol, in the 72 dp safe zone of a 108 dp icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:pathData="M44,40 L44,33 Q44,30 47,30 L61,30 Q64,30 64,33 L64,40" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,40 L76,40 Q80,40 80,44 L80,74 Q80,78 76,78 L32,78 Q28,78 28,74 L28,44 Q28,40 32,40 Z" />
+    <path
+        android:fillColor="#C51A4A"
+        android:pathData="M48,49 L64,59 L48,69 Z" />
+</vector>

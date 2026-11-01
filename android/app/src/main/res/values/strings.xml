@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Briefcase</string>
+    <string name="searching">Looking for the briefcase…</string>
+    <string name="not_reachable">The briefcase is not reachable. Connect to its Wi-Fi network %1$s.</string>
+    <string name="connect">Connect to %1$s</string>
+    <string name="connecting">Connecting to %1$s. Confirm the request from Android.</string>
+    <string name="connect_failed">Android could not connect to %1$s. Make sure that the briefcase is on and near, and that the password is correct.</string>
+    <string name="connection_lost">The connection to the briefcase was lost.</string>
+    <string name="try_again">Try again</string>
+    <string name="settings">Wi-Fi settings</string>
+    <string name="reload">Reload</string>
+    <string name="network_name">Network name</string>
+    <string name="password">Password (empty for an open network)</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="password_missing">Enter the Wi-Fi password of the briefcase first.</string>
+</resources>

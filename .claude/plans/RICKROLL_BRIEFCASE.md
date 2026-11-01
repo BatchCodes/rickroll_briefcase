@@ -285,9 +285,9 @@ The user wants an Android app. The app checks that the phone can reach the brief
 
 ### Implementation Steps
 
-8.1. [ ] (bd: none) Web app tabs: a tab bar with Status, Playback, Videos and Wi-Fi. Show one section at a time on a phone. Keep the selected tab in the URL fragment, so a reload keeps it. Hide the Wi-Fi tab when Wi-Fi control is not available. Check the layout in phone-sized screenshots.
-8.2. [ ] (bd: none) Android app in `android/`: a Kotlin project with one activity. The activity has a full-screen web view, the connection check, the "Connect to BRIEFCASE" flow with `WifiNetworkSpecifier`, a settings screen for the network name and password, the file chooser for uploads, and the network security configuration. Add unit tests for the connection logic.
-8.3. [ ] (bd: none) Build and release: a Docker build for the APK, a CI job that builds a debug APK on each push, and a release job that signs the APK with the key from the GitHub Actions secrets and attaches it to the GitHub release. Document how to make the key and add the secrets.
+8.1. [x] (bd: rickroll_briefcase-679.28) Web app tabs: a tab bar with Status, Playback, Videos and Wi-Fi. Show one section at a time on a phone. Keep the selected tab in the URL fragment, so a reload keeps it. Hide the Wi-Fi tab when Wi-Fi control is not available. Check the layout in phone-sized screenshots.
+8.2. [ ] (bd: rickroll_briefcase-679.29) Android app in `android/`: a Kotlin project with one activity. The activity has a full-screen web view, the connection check, the "Connect to BRIEFCASE" flow with `WifiNetworkSpecifier`, a settings screen for the network name and password, the file chooser for uploads, and the network security configuration. Add unit tests for the connection logic.
+8.3. [ ] (bd: rickroll_briefcase-679.30) Build and release: a Docker build for the APK, a CI job that builds a debug APK on each push, and a release job that signs the APK with the key from the GitHub Actions secrets and attaches it to the GitHub release. Document how to make the key and add the secrets.
 8.4. [ ] (bd: none) Test on the user's Android 15 phone: install the APK, the connect flow from mobile data, the web view on the briefcase Wi-Fi, a video upload in the app, and the behaviour when the briefcase is off. Record the results.
 
 ## Phase 9: Future Work
