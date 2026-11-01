@@ -57,6 +57,10 @@ Both switches connect their GPIO pin to ground when they are closed. The control
 | Pi 5        | no H.264 hardware decoder, but the CPU decodes 1080p30 H.264. It asks for a 5 V/5 A supply and can show a warning with 5 V/3 A. It does not wake from halt on GPIO 3, so `setup.sh --power-switch` is not available. Use `--power-latch` when the latch is fitted |
 | Pi Zero 2 W | H.264 hardware decoding, 512 MB memory. Use H.264 at 1080p30 or less                                                                                                                                                                                              |
 
+### Stored Set-up Options
+
+`scripts/setup.sh` stores its options in `.env`, with the prefix `BRIEFCASE_SETUP_`: the network name, the country, and the hotspot, power-save, console, tools and build choices. A later run without an option uses the stored value, so an update from the phone keeps the options of the first installation. Each option has a flag to change it again, for example `--no-power-save` after `--power-save`. An existing access point keeps its password, unless you give `--password`.
+
 ## Playback Settings (Web App)
 
 Each setting has a default. The briefcase operates correctly with no configuration.

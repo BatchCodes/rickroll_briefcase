@@ -252,6 +252,8 @@ run_setup() {
 
   if [[ "${FULL_INSTALL}" -eq 1 ]]; then
     extra_args+=("--build")
+  else
+    extra_args+=("--no-build")
   fi
 
   printf '==> Running the setup\n'

@@ -45,11 +45,15 @@ The script is safe to run again.
   --password TEXT      WPA2 password, 8 to 63 characters, for example 'never-gonna-9'
                        (the script asks for it if you do not give it)
   --country CODE       Wi-Fi country code, for example DE or GB
-  --no-hotspot         do not make the Wi-Fi access point
+  --no-hotspot         do not make the Wi-Fi access point (--hotspot: make it)
   --power-save         turn off Bluetooth and the board LEDs to decrease power
+                       (--no-power-save: keep them on)
   --keep-console       keep the login prompt on the HDMI screen
+                       (--hide-console: remove it)
   --no-tools           do not install the maintenance tools (tmux, nvim and
-                       magic-wormhole)
+                       magic-wormhole) (--tools: install them)
+  --non-interactive    never ask a question. Fail if an answer is necessary,
+                       for example the Wi-Fi password of a new access point
   --power-switch       use a power switch on GPIO 3 (pin 5) to ground: "off"
                        shuts the Pi down cleanly, "on" wakes the halted Pi.
                        Use this before the power latch hardware is fitted
@@ -70,7 +74,12 @@ The script is safe to run again.
                        sha-3f2a1c9 or latest (default: latest)
   --build              build the images on the Pi instead of downloading them
                        (slow: approximately 10 to 20 minutes on a Pi 4)
+                       (--no-build: download them)
   -h, --help           show this help
+
+The script stores the options in .env. A later run without an option uses
+the stored value. An existing access point keeps its password, unless you
+give --password.
 
 The access point starts at the next boot. If you use SSH over Wi-Fi now, the
 Pi leaves that network at the next boot. Connect to the briefcase network then.
@@ -78,14 +87,16 @@ USAGE
 }
 
 parse_args() {
-  SSID="BRIEFCASE"
+  # Empty means "not given": resolve_options uses the stored value or the default.
+  SSID=""
   PASSWORD=""
   COUNTRY=""
-  MAKE_HOTSPOT=1
-  POWER_SAVE=0
-  KEEP_CONSOLE=0
-  INSTALL_TOOLS=1
-  BUILD_LOCALLY=0
+  MAKE_HOTSPOT=""
+  POWER_SAVE=""
+  KEEP_CONSOLE=""
+  INSTALL_TOOLS=""
+  BUILD_LOCALLY=""
+  NON_INTERACTIVE=0
   IMAGE_TAG="latest"
   POWER_MODE=""
   LID_CLOSED_WHEN_LOW=""
@@ -121,20 +132,44 @@ parse_args() {
         MAKE_HOTSPOT=0
         shift
         ;;
+      --hotspot)
+        MAKE_HOTSPOT=1
+        shift
+        ;;
       --no-tools)
         INSTALL_TOOLS=0
+        shift
+        ;;
+      --tools)
+        INSTALL_TOOLS=1
         shift
         ;;
       --power-save)
         POWER_SAVE=1
         shift
         ;;
+      --no-power-save)
+        POWER_SAVE=0
+        shift
+        ;;
       --keep-console)
         KEEP_CONSOLE=1
         shift
         ;;
+      --hide-console)
+        KEEP_CONSOLE=0
+        shift
+        ;;
       --build)
         BUILD_LOCALLY=1
+        shift
+        ;;
+      --no-build)
+        BUILD_LOCALLY=0
+        shift
+        ;;
+      --non-interactive)
+        NON_INTERACTIVE=1
         shift
         ;;
       --power-switch)
@@ -212,9 +247,58 @@ require_system() {
   fi
 }
 
+stored_value() {
+  local key="$1"
+
+  if [[ ! -f "${ENV_FILE}" ]]; then
+    return 0
+  fi
+  sed -n "s/^${key}=//p" "${ENV_FILE}" | tail -n 1
+}
+
+resolve_options() {
+  SSID="${SSID:-$(stored_value BRIEFCASE_SETUP_SSID)}"
+  SSID="${SSID:-BRIEFCASE}"
+  COUNTRY="${COUNTRY:-$(stored_value BRIEFCASE_SETUP_COUNTRY)}"
+  MAKE_HOTSPOT="${MAKE_HOTSPOT:-$(stored_value BRIEFCASE_SETUP_HOTSPOT)}"
+  MAKE_HOTSPOT="${MAKE_HOTSPOT:-1}"
+  POWER_SAVE="${POWER_SAVE:-$(stored_value BRIEFCASE_SETUP_POWER_SAVE)}"
+  POWER_SAVE="${POWER_SAVE:-0}"
+  KEEP_CONSOLE="${KEEP_CONSOLE:-$(stored_value BRIEFCASE_SETUP_KEEP_CONSOLE)}"
+  KEEP_CONSOLE="${KEEP_CONSOLE:-0}"
+  INSTALL_TOOLS="${INSTALL_TOOLS:-$(stored_value BRIEFCASE_SETUP_TOOLS)}"
+  INSTALL_TOOLS="${INSTALL_TOOLS:-1}"
+  BUILD_LOCALLY="${BUILD_LOCALLY:-$(stored_value BRIEFCASE_SETUP_BUILD)}"
+  BUILD_LOCALLY="${BUILD_LOCALLY:-0}"
+}
+
+store_options() {
+  set_env_value BRIEFCASE_SETUP_SSID "${SSID}"
+  set_env_value BRIEFCASE_SETUP_COUNTRY "${COUNTRY}"
+  set_env_value BRIEFCASE_SETUP_HOTSPOT "${MAKE_HOTSPOT}"
+  set_env_value BRIEFCASE_SETUP_POWER_SAVE "${POWER_SAVE}"
+  set_env_value BRIEFCASE_SETUP_KEEP_CONSOLE "${KEEP_CONSOLE}"
+  set_env_value BRIEFCASE_SETUP_TOOLS "${INSTALL_TOOLS}"
+  set_env_value BRIEFCASE_SETUP_BUILD "${BUILD_LOCALLY}"
+}
+
+hotspot_exists() {
+  if ! command -v nmcli >/dev/null 2>&1; then
+    return 1
+  fi
+  nmcli -t -f NAME connection show | grep -qx "${HOTSPOT_CONNECTION}"
+}
+
 read_password() {
   if [[ "${MAKE_HOTSPOT}" -eq 0 ]] || [[ -n "${PASSWORD}" ]]; then
     return 0
+  fi
+  if hotspot_exists; then
+    return 0
+  fi
+  if [[ "${NON_INTERACTIVE}" -eq 1 ]]; then
+    printf 'error: there is no access point yet, so the script needs a Wi-Fi password. Give it with --password.\n' >&2
+    exit 1
   fi
 
   if [[ ! -r /dev/tty ]]; then
@@ -234,6 +318,9 @@ read_password() {
 
 check_password() {
   if [[ "${MAKE_HOTSPOT}" -eq 0 ]]; then
+    return 0
+  fi
+  if [[ -z "${PASSWORD}" ]] && hotspot_exists; then
     return 0
   fi
   if [[ "${#PASSWORD}" -lt 8 ]] || [[ "${#PASSWORD}" -gt 63 ]]; then
@@ -474,6 +561,24 @@ configure_console() {
   printf 'The login prompt no longer shows on the HDMI screen. SSH still works.\n'
 }
 
+create_hotspot() {
+  nmcli connection add \
+    type wifi \
+    ifname wlan0 \
+    con-name "${HOTSPOT_CONNECTION}" \
+    autoconnect yes \
+    ssid "${SSID}" \
+    connection.autoconnect-priority 100 \
+    802-11-wireless.mode ap \
+    802-11-wireless.band bg \
+    ipv4.method shared \
+    ipv6.method disabled \
+    wifi-sec.key-mgmt wpa-psk \
+    wifi-sec.proto rsn \
+    wifi-sec.pairwise ccmp \
+    wifi-sec.psk "${PASSWORD}"
+}
+
 configure_hotspot() {
   if [[ "${MAKE_HOTSPOT}" -eq 0 ]]; then
     return 0
@@ -490,25 +595,17 @@ configure_hotspot() {
   fi
   rfkill unblock wifi || true
 
-  if nmcli -t -f NAME connection show | grep -qx "${HOTSPOT_CONNECTION}"; then
-    nmcli connection delete "${HOTSPOT_CONNECTION}"
+  if hotspot_exists; then
+    # Keep the existing access point, so that an unattended update needs no
+    # password. Apply a new network name or password if one was given.
+    nmcli connection modify "${HOTSPOT_CONNECTION}" 802-11-wireless.ssid "${SSID}"
+    if [[ -n "${PASSWORD}" ]]; then
+      nmcli connection modify "${HOTSPOT_CONNECTION}" wifi-sec.psk "${PASSWORD}"
+    fi
+    printf 'The access point %s exists. The script kept it.\n' "${SSID}"
+  else
+    create_hotspot
   fi
-
-  nmcli connection add \
-    type wifi \
-    ifname wlan0 \
-    con-name "${HOTSPOT_CONNECTION}" \
-    autoconnect yes \
-    ssid "${SSID}" \
-    connection.autoconnect-priority 100 \
-    802-11-wireless.mode ap \
-    802-11-wireless.band bg \
-    ipv4.method shared \
-    ipv6.method disabled \
-    wifi-sec.key-mgmt wpa-psk \
-    wifi-sec.proto rsn \
-    wifi-sec.pairwise ccmp \
-    wifi-sec.psk "${PASSWORD}"
   apt-get install -y dnsmasq-base
   install -d -m 0755 "$(dirname -- "${DNSMASQ_SHARED_CONF}")"
   printf 'address=/%s/%s\n' "${FRIENDLY_NAME}" "${HOTSPOT_ADDRESS}" >"${DNSMASQ_SHARED_CONF}"
@@ -616,6 +713,7 @@ SUMMARY
 main() {
   parse_args "$@"
   require_system
+  resolve_options
   resolve_power_mode
   check_power_mode
   read_password
@@ -624,6 +722,7 @@ main() {
   install_tools
   add_user_to_groups
   write_env
+  store_options
   configure_boot
   disable_desktop
   configure_console
