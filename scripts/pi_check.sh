@@ -23,32 +23,34 @@ Run it on the Pi after a boot, when the web app shows "Ready".
 USAGE
 }
 
-boot_epoch() {
-  awk '/^btime/ { print $2 }' /proc/stat
-}
-
-ready_epoch() {
-  local ready_line
-  local ready_time
-
-  ready_line="$(docker compose --project-directory "${REPO_DIR}" logs --no-color --timestamps controller 2>/dev/null | grep -m 1 'Ready:' || true)"
-  if [[ -z "${ready_line}" ]]; then
-    return 1
-  fi
-  ready_time="$(printf '%s\n' "${ready_line}" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z' | head -n 1)"
-  date -d "${ready_time}" +%s
+ready_uptime() {
+  docker compose --project-directory "${REPO_DIR}" logs --no-color controller 2>/dev/null |
+    sed -n 's/.*First ready: \([0-9]*\) s after the boot.*/\1/p' |
+    tail -n 1
 }
 
 print_boot_time() {
-  local boot
-  local ready
+  local seconds
 
-  boot="$(boot_epoch)"
-  if ! ready="$(ready_epoch)"; then
-    printf 'Boot to ready: the controller log has no "Ready:" line yet.\n'
+  seconds="$(ready_uptime)"
+  if [[ -z "${seconds}" ]]; then
+    printf 'Boot to ready: the controller log has no "First ready" line yet.\n'
     return 0
   fi
-  printf 'Boot to ready: %d s\n' "$((ready - boot))"
+  printf 'Boot to ready: %s s (the Pi uptime when the controller was first ready)\n' "${seconds}"
+}
+
+print_throttled() {
+  local value
+  local flags
+
+  value="$(vcgencmd get_throttled | sed 's/.*=//')"
+  printf '  throttled: %s\n' "${value}"
+  flags=$((value))
+  if (( flags & 0x1 )); then printf '    now: under-voltage\n'; fi
+  if (( flags & 0x4 )); then printf '    now: throttled\n'; fi
+  if (( flags & 0x10000 )); then printf '    since the boot: under-voltage occurred (the power supply gives too little)\n'; fi
+  if (( flags & 0x40000 )); then printf '    since the boot: throttling occurred\n'; fi
 }
 
 print_player_properties() {
@@ -89,7 +91,7 @@ print_system() {
   printf '  kernel: %s\n' "$(uname -r)"
   if command -v vcgencmd >/dev/null 2>&1; then
     printf '  temperature: %s\n' "$(vcgencmd measure_temp)"
-    printf '  throttled: %s\n' "$(vcgencmd get_throttled)"
+    print_throttled
   fi
 }
 

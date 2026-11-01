@@ -18,6 +18,7 @@ import logging
 import random
 from dataclasses import asdict, dataclass, replace
 from enum import StrEnum
+from pathlib import Path
 
 from briefcase.display import Display
 from briefcase.inputs import Inputs, InputState
@@ -36,6 +37,14 @@ LOGGER = logging.getLogger(__name__)
 RETRY_DELAY_SEC = 5.0
 AUDIO_CHECK_SEC = 5.0
 KNOB_TEXT_MS = 3000
+
+
+def _host_uptime() -> float | None:
+    """Seconds since the boot. A container shares /proc/uptime with the host."""
+    try:
+        return float(Path("/proc/uptime").read_text().split()[0])
+    except (OSError, ValueError, IndexError):
+        return None
 
 
 class ControllerError(RuntimeError):
@@ -105,6 +114,7 @@ class BriefcaseController:
         self._shutting_down = False
         self._error: str | None = None
         self._retry: asyncio.TimerHandle | None = None
+        self._first_ready_logged = False
         self._resume_timer: asyncio.TimerHandle | None = None
         self._resume_deadline: float | None = None
         self._audio_watch: asyncio.Task[None] | None = None
@@ -500,6 +510,13 @@ class BriefcaseController:
         self._prepared = True
         self._error = None
         LOGGER.info("Ready: %s at %.1f s", name, start_sec)
+        if not self._first_ready_logged:
+            self._first_ready_logged = True
+            uptime = _host_uptime()
+            if uptime is not None:
+                # scripts/pi_check.sh reads this line. The uptime does not
+                # depend on the clock, which is often wrong on the hotspot.
+                LOGGER.info("First ready: %.0f s after the boot", uptime)
 
     async def _play(self) -> None:
         if self._resume_deadline is not None:
