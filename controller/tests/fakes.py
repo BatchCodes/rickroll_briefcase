@@ -87,6 +87,8 @@ class FakePlayer:
 
 
 class FakeDisplay:
+    can_turn_off = True
+
     def __init__(self) -> None:
         self.is_on: bool | None = None
 

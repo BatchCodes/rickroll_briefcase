@@ -33,7 +33,7 @@ def build_app(config: AppConfig) -> FastAPI:
     library = Library(config.videos_dir)
     store = SettingsStore(config.settings_path)
     controller = BriefcaseController(
-        inputs, player, create_display(config), library, store
+        inputs, player, create_display(config, client), library, store
     )
     network = create_network(config)
     updates = UpdateManager(

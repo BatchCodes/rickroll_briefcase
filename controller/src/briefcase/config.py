@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Literal
 
 InputBackend = Literal["gpio", "simulated"]
-DisplayBackend = Literal["none", "command"]
+DisplayBackend = Literal["none", "command", "player"]
 NetworkBackendName = Literal["none", "nmcli", "simulated"]
 
 ENV_PREFIX = "BRIEFCASE_"
@@ -89,9 +89,9 @@ class AppConfig:
                 f"not {input_backend!r}"
             )
         display_backend = _env("DISPLAY_BACKEND", "none")
-        if display_backend not in ("none", "command"):
+        if display_backend not in ("none", "command", "player"):
             raise ValueError(
-                f"{ENV_PREFIX}DISPLAY_BACKEND must be none or command, "
+                f"{ENV_PREFIX}DISPLAY_BACKEND must be none, command or player, "
                 f"not {display_backend!r}"
             )
         network_backend = _env("NETWORK_BACKEND", "none")
