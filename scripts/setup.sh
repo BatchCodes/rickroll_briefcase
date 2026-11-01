@@ -61,7 +61,8 @@ The script is safe to run again.
   --no-hotspot         do not make the Wi-Fi access point (--hotspot: make it)
   --power-save         turn off Bluetooth and the board LEDs to decrease power
                        (--no-power-save: keep them on)
-  --keep-console       keep the login prompt on the HDMI screen
+  --keep-console       keep the login prompt on the HDMI screen. The screen then
+                       does not turn off while the lid is closed
                        (--hide-console: remove it)
   --no-tools           do not install the maintenance tools (tmux, nvim and
                        magic-wormhole) (--tools: install them)

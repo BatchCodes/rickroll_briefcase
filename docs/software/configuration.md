@@ -33,7 +33,7 @@ docker compose up -d
 | `BRIEFCASE_ARMED_WHEN_LOW`        | `true`        | `true` if a low arm pin means "armed"                                                                                                                                                                  |
 | `BRIEFCASE_PLAYER_OUTPUT`         | `drm`         | `drm` (full screen on HDMI, no desktop), `window` (a desktop window) or `null` (no picture or sound)                                                                                                   |
 | `BRIEFCASE_PLAYER_EXTRA_ARGS`     | empty         | more `mpv` options, for example `--audio-device=alsa/hdmi:CARD=vc4hdmi0`                                                                                                                               |
-| `BRIEFCASE_DISPLAY_BACKEND`       | `none`        | `none` (the monitor stays on) or `command` (run the commands below)                                                                                                                                    |
+| `BRIEFCASE_DISPLAY_BACKEND`       | `none`        | `player` (the player turns the HDMI output off, set by `setup.sh`), `none` (the monitor stays on) or `command` (run the commands below)                                                                |
 | `BRIEFCASE_DISPLAY_ON_COMMAND`    | empty         | the shell command that turns the monitor on, in the controller container                                                                                                                               |
 | `BRIEFCASE_DISPLAY_OFF_COMMAND`   | empty         | the shell command that turns the monitor off, in the controller container                                                                                                                              |
 | `BRIEFCASE_NETWORK_BACKEND`       | `nmcli`       | `nmcli` (the web app controls the Pi Wi-Fi), `simulated` (laptop mode) or `none` (no Wi-Fi section)                                                                                                    |
@@ -91,6 +91,8 @@ Each setting has a default. The briefcase operates correctly with no configurati
 | Default start position | global    | a time, for example `00:30`                                                                                   | `00:30`                   |
 | Volume                 | global    | 0 to 100                                                                                                      | 80                        |
 | Resume window          | global    | seconds, `0` turns it off                                                                                     | `15`                      |
+| Screen while closed    | global    | turns off or stays on                                                                                         | turns off                 |
+| Screen-off delay       | global    | seconds, while the briefcase is armed and closed                                                              | `60`                      |
 | Start mode             | per video | `fixed`, `beginning`, `random` (one of the cue points), `resume`                                              | `fixed`                   |
 | Start position         | per video | a time, or empty for the default start position                                                               | empty                     |
 | Cue points             | per video | a list of times, for example `00:30, 01:12`                                                                   | empty                     |
@@ -103,6 +105,27 @@ When the lid closes, the video pauses at its position. If the lid opens again wi
 In the `cycle` and `shuffle` modes, the briefcase changes to the next video when the lid closes. The `shuffle` mode does not play the same video two times in sequence.
 
 The web app button "Reset to defaults" resets all playback settings. It does not delete videos.
+
+## Screen Off While Closed
+
+A monitor with the backlight on uses power, also with a black picture. With `BRIEFCASE_DISPLAY_BACKEND=player`, the briefcase turns the HDMI output off, and the monitor goes into power saving. This saves about 1 W with the Kenowa monitor. The screen follows these rules:
+
+| Lid    | Briefcase | Screen                                                  |
+| ------ | --------- | ------------------------------------------------------- |
+| open   | disarmed  | on, so that you can see the video that the knob selects |
+| open   | armed     | on. The video plays.                                    |
+| closed | disarmed  | off                                                     |
+| closed | armed     | on for the screen-off delay, then off                   |
+
+Arming the briefcase and closing the lid start the delay again. When the lid opens while the screen is off, the video starts at once. The monitor needs about 2 s to wake, so the person misses about the first 2 s. To prevent this, "prime" the briefcase before a person opens it:
+
+- Disarm the briefcase, and arm it again.
+- Or use "Prime" on the Status tab. The screen stays on for the screen-off delay.
+- Or use "Prime until opened" on the Status tab. The screen stays on until the lid opens. This uses more power.
+
+The Status tab shows the screen state. Set "Screen while the lid is closed" to "Stays on" to keep the screen always on.
+
+The screen-off needs the kernel setting `drm_client_lib.active=none`. Without it, the kernel console takes the screen. Thus `setup.sh --keep-console` does not set it, and selects `BRIEFCASE_DISPLAY_BACKEND=none`.
 
 ## Settings File
 

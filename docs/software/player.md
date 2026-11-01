@@ -70,30 +70,31 @@ A delay of less than 300 ms feels instant.
 
 ## Test 3: Display Off
 
-While the lid is closed, the monitor shows a paused frame and its backlight stays on. This uses power. Try these methods in the order below. Use the first method that turns the backlight off and turns it on again in less than 1 s.
+While the lid is closed, the monitor shows a paused frame and its backlight stays on. This uses power. The table shows the methods that the user tested on the Raspberry Pi 5 with the Kenowa monitor (2026-11-01).
 
-| Method                                 | "Off" command                           | "On" command                                  | Result |
-| -------------------------------------- | --------------------------------------- | --------------------------------------------- | ------ |
-| HDMI-CEC standby                       | `cec-ctl -d /dev/cec0 --to 0 --standby` | `cec-ctl -d /dev/cec0 --to 0 --image-view-on` |        |
-| USB power switch on the monitor supply | a GPIO-controlled load switch           | the same switch                               |        |
-| None (paused frame)                    | none                                    | none                                          |        |
+| Method                             | Command                                                                            | Result                                                                                                            |
+| ---------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| HDMI-CEC standby                   | `cec-ctl -d /dev/cec0 --playback -S`                                               | does not work. The topology shows only the Pi, so the monitor does not support CEC.                               |
+| Console blanking                   | `setterm --blank force` on `tty1`                                                  | does not work. The monitor stays on.                                                                              |
+| Stop the player                    | `docker compose stop player`                                                       | does not work. The kernel console takes the screen, or the last mode stays active with a black picture.           |
+| Unplug the HDMI cable              | none                                                                               | works. The monitor shows "No signal", goes into power saving after about 10 s, and wakes in about 3 s.            |
+| DPMS off, without a kernel console | `drm_client_lib.active=none` in `cmdline.txt`, then `modetest -M vc4 -w 35:DPMS:3` | works. The monitor goes into power saving. The picture returns about 2 s after the player takes the screen again. |
+| None (paused frame)                | none                                                                               | the backlight stays on.                                                                                           |
 
-Measure the power of the complete briefcase for each method with the Anker 737 display, with the lid closed:
+The briefcase uses the DPMS method. `setup.sh` adds the kernel setting and selects `BRIEFCASE_DISPLAY_BACKEND=player`. The controller then tells mpv to release the video output, and the player container runs [screen_off.sh](../../player/screen_off.sh). On kernel 6.18 the older setting `drm_kms_helper.fbdev_emulation` is already `N`, and the console comes from `drm_client_lib`. `setup.sh` sets both settings, so that older kernels also have no console.
 
-| Method              | Power, lid closed (W) | Power, playing (W) |
-| ------------------- | --------------------- | ------------------ |
-| None (paused frame) |                       |                    |
-| Best method         |                       |                    |
+| Monitor state | Monitor power (W) |
+| ------------- | ----------------- |
+| Paused frame  | about 3           |
+| Power saving  | about 2           |
 
-To use a command method, set these variables in `.env`. The controller container then runs the commands:
+The screen-off thus saves about 1 W. Refer to the [configuration reference](configuration.md#screen-off-while-closed) for the rules and the settings.
+
+To check the DPMS state on the Pi, run this command. `active=0` means that the HDMI output is off:
 
 ```bash
-BRIEFCASE_DISPLAY_BACKEND=command
-BRIEFCASE_DISPLAY_OFF_COMMAND=<off command>
-BRIEFCASE_DISPLAY_ON_COMMAND=<on command>
+sudo grep -A2 "crtc-2" /sys/kernel/debug/dri/1/state
 ```
-
-N.B., a CEC command needs `/dev/cec0` and the `cec-ctl` tool in the controller container. Add them in the same change that selects this method.
 
 ## Test 4: Zero-Touch Acceptance
 

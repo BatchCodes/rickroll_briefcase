@@ -12,6 +12,7 @@ The briefcase contains a Raspberry Pi, a 13.3" portable monitor and a USB-C powe
 
 - instant start when a person opens the lid, because the video is already loaded and paused
 - instant stop when a person closes the lid
+- the screen turns off while the lid is closed, to save power, with a "prime" button for an instant start
 - external arm switch: switch it on and the briefcase is ready
 - zero-touch operation: no keyboard, no mouse, no desktop and no windows
 - a video library with upload, rename and delete in a phone web app, in any phone browser or in the Briefcase Android app
