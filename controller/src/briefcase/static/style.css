@@ -252,9 +252,34 @@ code {
   white-space: nowrap;
 }
 
-.position progress {
+.position input[type="range"] {
   flex: 1;
-  accent-color: var(--accent);
+  min-width: 0;
+  height: 32px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.position input[type="range"]:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.icon-sprite {
+  display: none;
+}
+
+button.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+}
+
+button.icon svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
 }
 
 .position-tools {

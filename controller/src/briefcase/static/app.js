@@ -64,6 +64,8 @@ function currentTab() {
 }
 
 let lastStatus = null;
+// True while a finger or the mouse drags the position bar.
+let draggingPosition = false;
 let lastArmedVideo = null;
 let videos = [];
 
@@ -128,15 +130,17 @@ function renderStatus(status) {
   const playing = status.state === "playing";
   const position = status.position_sec;
   const duration = status.duration_sec;
-  $("#position-text").textContent =
-    position === null || position === undefined
-      ? "--:-- / --:--"
-      : `${formatTime(position)} / ${duration ? formatTime(duration) : "--:--"}`;
   const bar = $("#position-bar");
-  bar.max = duration || 1;
-  bar.value = position && duration ? Math.min(position, duration) : 0;
-  $("#pause-button").textContent = status.paused ? "Resume" : "Pause";
-  $("#pause-button").disabled = !playing;
+  bar.disabled = !playing || !duration;
+  if (!draggingPosition) {
+    $("#position-text").textContent =
+      position === null || position === undefined
+        ? "--:-- / --:--"
+        : `${formatTime(position)} / ${duration ? formatTime(duration) : "--:--"}`;
+    bar.max = duration || 1;
+    bar.value = position && duration ? Math.min(position, duration) : 0;
+  }
+  setPlayButton(playing && !status.paused ? "pause" : "play");
   for (const button of document.querySelectorAll("#position-tools button")) {
     button.disabled = !playing;
   }
@@ -169,6 +173,15 @@ function renderStatus(status) {
   $("#simulate").hidden = !status.simulated_inputs;
   $("#sim-lid").textContent = status.lid_open ? "Close lid" : "Open lid";
   $("#sim-arm").textContent = status.armed ? "Disarm" : "Arm";
+}
+
+function setPlayButton(action) {
+  const button = $("#play-button");
+  const label = action === "pause" ? "Pause" : lastStatus.paused ? "Resume" : "Play";
+  button.dataset.action = action;
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  $("use", button).setAttribute("href", `#icon-${action}`);
 }
 
 async function refreshStatus() {
@@ -512,17 +525,34 @@ function bindEvents() {
   }
   window.addEventListener("hashchange", () => showTab(currentTab()));
 
+  // One button: play from the start position, pause, or resume after a pause.
   $("#play-button").addEventListener("click", () =>
-    run(async () => renderStatus(await api("POST", "/api/play", { active: true }))),
+    run(async () => {
+      const playing = lastStatus && lastStatus.state === "playing";
+      const status = !playing
+        ? await api("POST", "/api/play", { active: true })
+        : await api("POST", "/api/pause", {
+            paused: $("#play-button").dataset.action === "pause",
+          });
+      renderStatus(status);
+    }),
   );
   $("#stop-button").addEventListener("click", () =>
     run(async () => renderStatus(await api("POST", "/api/play", { active: false }))),
   );
-  $("#pause-button").addEventListener("click", () =>
-    run(async () =>
-      renderStatus(await api("POST", "/api/pause", { paused: !lastStatus.paused })),
-    ),
-  );
+  const bar = $("#position-bar");
+  bar.addEventListener("input", () => {
+    draggingPosition = true;
+    const duration = lastStatus && lastStatus.duration_sec;
+    $("#position-text").textContent =
+      `${formatTime(Number(bar.value))} / ${duration ? formatTime(duration) : "--:--"}`;
+  });
+  bar.addEventListener("change", async () => {
+    await run(async () =>
+      renderStatus(await api("POST", "/api/seek", { position_sec: Number(bar.value) })),
+    );
+    draggingPosition = false;
+  });
   for (const button of document.querySelectorAll(".seek")) {
     button.addEventListener("click", () =>
       run(async () =>
