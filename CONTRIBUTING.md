@@ -72,12 +72,16 @@ Do not add copyright material to the repository. This includes music, videos and
 
 ## Releases
 
-Maintainers make releases.
+Maintainers make releases with [scripts/release.sh](scripts/release.sh) and [scripts/prerelease.sh](scripts/prerelease.sh). You need `git` and `gh`, signed in to GitHub.
 
-1. Update the `version` in [controller/pyproject.toml](controller/pyproject.toml).
-2. Commit the change with the message `chore: release vX.Y.Z`.
-3. Make a tag, for example `git tag v1.2.0`. For a pre-release, add a suffix, for example `v1.2.0-rc.1`.
-4. Push the tag with `git push origin v1.2.0`.
+```bash
+./scripts/prerelease.sh            # the next pre-release, for example v0.1.0-rc.6
+./scripts/prerelease.sh 0.2.0      # v0.2.0-rc.1, and set the version to 0.2.0
+./scripts/release.sh               # the release of the version in controller/pyproject.toml
+./scripts/release.sh 0.2.0         # the release v0.2.0
+```
+
+The scripts check that you are on `main`, that tracked files have no uncommitted changes, that your `main` is the same as on GitHub, and that CI passed for the commit. If the version changes, they set it in `controller/pyproject.toml` and `controller/src/briefcase/__init__.py` in a `version:` commit. Then they make the tag, show the plan and ask before they push. Use `--dry-run` to see the plan only, and `--watch` to follow the workflows after the push.
 
 Two workflows then run:
 
