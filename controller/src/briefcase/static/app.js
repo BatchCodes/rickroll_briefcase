@@ -31,7 +31,9 @@ const POWER_LABELS = {
 
 const $ = (selector, root = document) => root.querySelector(selector);
 
-const TAB_NAMES = ["status", "playback", "videos", "wifi"];
+const TAB_NAMES = ["status", "playback", "upload", "wifi"];
+// Old fragments from bookmarks, mapped to the current tab names.
+const TAB_ALIASES = { videos: "upload" };
 
 function availableTabs() {
   return TAB_NAMES.filter((name) => {
@@ -57,7 +59,8 @@ function showTab(name) {
 }
 
 function currentTab() {
-  return location.hash.replace("#", "") || "status";
+  const name = location.hash.replace("#", "") || "status";
+  return TAB_ALIASES[name] || name;
 }
 
 let lastStatus = null;
@@ -201,7 +204,7 @@ function renderVideoTable(settings) {
     const cell = document.createElement("td");
     cell.colSpan = 2;
     cell.className = "muted";
-    cell.textContent = "No videos yet. Upload one below.";
+    cell.textContent = "No videos yet. Upload one in the Upload tab.";
     row.append(cell);
     body.replaceChildren(row);
     return;
