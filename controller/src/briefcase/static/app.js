@@ -40,7 +40,7 @@ const POWER_LABELS = {
 
 const $ = (selector, root = document) => root.querySelector(selector);
 
-const TAB_NAMES = ["status", "playback", "upload", "wifi", "updates"];
+const TAB_NAMES = ["status", "playlist", "upload", "wifi", "updates"];
 const UPDATE_POLL_MS = 3000;
 
 const UPDATE_STATE_LABELS = {
@@ -53,7 +53,7 @@ const UPDATE_STATE_LABELS = {
   failed: "Failed",
 };
 // Old fragments from bookmarks, mapped to the current tab names.
-const TAB_ALIASES = { videos: "upload" };
+const TAB_ALIASES = { videos: "upload", playback: "playlist" };
 
 function availableTabs() {
   return TAB_NAMES.filter((name) => {

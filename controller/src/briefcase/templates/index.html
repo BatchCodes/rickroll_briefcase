@@ -22,7 +22,7 @@
 
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button type="button" role="tab" data-tab="status" aria-selected="true">Status</button>
-      <button type="button" role="tab" data-tab="playback" aria-selected="false">Playback</button>
+      <button type="button" role="tab" data-tab="playlist" aria-selected="false">Playlist</button>
       <button type="button" role="tab" data-tab="upload" aria-selected="false">Upload</button>
       <button type="button" role="tab" data-tab="wifi" aria-selected="false" hidden>Wi-Fi</button>
       <button type="button" role="tab" data-tab="updates" aria-selected="false">Updates</button>
@@ -88,24 +88,28 @@
         </div>
       </section>
 
-      <section class="card" data-tab="playback" aria-labelledby="settings-heading">
-        <h2 id="settings-heading">Playback</h2>
+      <section class="card" data-tab="playlist" aria-labelledby="playlist-heading">
+        <h2 id="playlist-heading">Playlist</h2>
+        <div class="video-table-wrap">
+          <table id="video-table" class="video-table">
+            <thead>
+              <tr>
+                <th scope="col">Video</th>
+                <th scope="col">Start</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="muted hint">
+          Tap a video to select it. Type a start position, for example 01:05, then
+          press Enter. Leave it empty to use the default start position.
+        </p>
+      </section>
+
+      <section class="card" data-tab="playlist" aria-labelledby="settings-heading">
+        <h2 id="settings-heading">Default behaviour</h2>
         <form id="settings-form">
-          <div class="video-table-wrap">
-            <table id="video-table" class="video-table">
-              <thead>
-                <tr>
-                  <th scope="col">Video</th>
-                  <th scope="col">Start</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <p class="muted hint">
-            Tap a video to select it. Type a start position, for example 01:05, then
-            press Enter. Leave it empty to use the default start position.
-          </p>
           <label>
             Selection mode
             <select name="selection_mode">
