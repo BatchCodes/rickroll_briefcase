@@ -32,6 +32,7 @@
     "httpx",
     "hwdec",
     "jeepney",
+    "journalctl",
     "jsonipc",
     "kenowa",
     "keyalg",
