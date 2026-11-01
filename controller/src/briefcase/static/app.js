@@ -23,10 +23,11 @@ const WIFI_MODE_LABELS = {
   unavailable: "Unavailable",
 };
 
-const AUDIO_LABELS = {
+// Short sound values for the one-row status facts. The message below gives details.
+const AUDIO_SHORT_LABELS = {
   ok: "OK",
-  failed: "No sound",
-  no_track: "No audio track",
+  failed: "Error",
+  no_track: "None",
   unknown: "–",
 };
 
@@ -130,6 +131,13 @@ function showError(message) {
   element.hidden = !message;
 }
 
+// Colour a status fact: "good" (green), "bad" (red) or null (no colour).
+function setFactTone(selector, tone) {
+  const fact = $(selector).parentElement;
+  fact.classList.toggle("fact-good", tone === "good");
+  fact.classList.toggle("fact-bad", tone === "bad");
+}
+
 function renderStatus(status) {
   lastStatus = status;
   // Show a volume change from another phone, but not while this one moves a slider.
@@ -158,10 +166,17 @@ function renderStatus(status) {
   $("#now-video").textContent = nowText;
   $("#now-video").title = nowText;
   $("#lid-state").textContent = status.lid_open ? "Open" : "Closed";
-  $("#arm-state").textContent = status.armed ? "Armed" : "Disarmed";
-  $("#player-state").textContent = status.player_connected ? "Connected" : "Offline";
+  $("#arm-state").textContent = status.armed ? "On" : "Off";
+  $("#player-state").textContent = status.player_connected ? "OK" : "Offline";
+  setFactTone("#lid-state", status.lid_open ? "good" : null);
+  setFactTone("#arm-state", status.armed ? "good" : "bad");
+  setFactTone("#player-state", status.player_connected ? "good" : "bad");
+  setFactTone(
+    "#audio-state",
+    status.audio === "failed" ? "bad" : status.audio === "ok" ? "good" : null,
+  );
   const audioState = $("#audio-state");
-  audioState.textContent = AUDIO_LABELS[status.audio] || status.audio || "–";
+  audioState.textContent = AUDIO_SHORT_LABELS[status.audio] || status.audio || "–";
   audioState.title = status.audio_device || "";
   const audioMessage = $("#audio-message");
   audioMessage.hidden = status.audio !== "failed";

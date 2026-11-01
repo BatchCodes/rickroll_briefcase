@@ -469,3 +469,33 @@ a {
 body.in-app > header {
   display: none;
 }
+
+.status-facts {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.status-facts > div {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg);
+  min-width: 0;
+}
+
+.status-facts dd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-facts > div.fact-good {
+  background: color-mix(in srgb, var(--ok) 22%, var(--card));
+}
+
+.status-facts > div.fact-bad {
+  background: color-mix(in srgb, var(--danger) 22%, var(--card));
+}
+
+.status-facts #power-fact {
+  grid-column: 1 / -1;
+}
