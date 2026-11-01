@@ -36,15 +36,18 @@ If there is no picture, try the other DRM output in `.env`, then restart the con
 BRIEFCASE_PLAYER_EXTRA_ARGS=--vo=drm --audio-device=alsa/sysdefault:CARD=vc4hdmi0
 ```
 
-| Item                               | Result |
-| ---------------------------------- | ------ |
-| Board and RAM                      |        |
-| `current-vo`                       |        |
-| `hwdec-current`                    |        |
-| `audio-device`                     |        |
-| Picture fills the screen           |        |
-| Sound from the monitor             |        |
-| Frame drops after 60 s of playback |        |
+Results on 2026-11-01 (Raspberry Pi 5):
+
+| Item                               | Result                                                                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Board and RAM                      | Raspberry Pi 5 Model B Rev 1.1, kernel 6.18.50                                                                                                          |
+| `current-vo`                       | `gpu` (DRM output)                                                                                                                                      |
+| `hwdec-current`                    | `no`. The Pi 5 has no H.264 hardware decoder. The CPU decodes the 854×480 test video                                                                    |
+| `audio-device`                     | `alsa/sysdefault:CARD=vc4hdmi0`                                                                                                                         |
+| Picture fills the screen           | yes, after these fixes: the player image on Debian trixie (Mesa for the Pi 5 GPU), console boot instead of the desktop, and the monitor cable in HDMI 0 |
+| Sound from the monitor             | yes                                                                                                                                                     |
+| Frame drops after 60 s of playback | 0 (`frame-drop-count` and `decoder-frame-drop-count`)                                                                                                   |
+| Power                              | `throttled=0x50000`: under-voltage and throttling occurred since the boot. The Pi 5 asks for 5 V/5 A, and the Anker 737 gives 5 V/3 A                   |
 
 ## Test 2: Start Delay
 
@@ -168,8 +171,9 @@ The Status tab of the web app shows "No sound" when the player cannot open the H
 
 ## Results Log
 
-| Date | Board | Tester | Notes |
-| ---- | ----- | ------ | ----- |
+| Date       | Board | Tester | Notes                                                                                                                                                                                         |
+| ---------- | ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-01 | Pi 5  | user   | Tests 1 and 4: picture, sound, lid and arm switch, power cycles. Most zero-touch checks passed. The boot time was not measured reliably, because the Pi has no correct clock without internet |
 
 ## See also
 
