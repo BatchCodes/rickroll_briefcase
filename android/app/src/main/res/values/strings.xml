@@ -10,6 +10,14 @@
     <string name="connect_failed">Android could not connect to %1$s. Make sure that the briefcase is on and near, and that the password is correct.</string>
     <string name="connection_lost">The connection to the briefcase was lost.</string>
     <string name="try_again">Try again</string>
+    <string name="network_in_range">%1$s is in range (signal: %2$s).</string>
+    <string name="network_not_in_range">%1$s is not in range. Turn the briefcase on, or move nearer to it.</string>
+    <string name="network_scan_permission">Allow "Nearby devices" to see if %1$s is in range.</string>
+    <string name="network_scan_location">Allow location access and turn location on to see if %1$s is in range.</string>
+    <string name="network_wifi_off">Wi-Fi is off. Turn it on to connect to %1$s.</string>
+    <string name="signal_strong">strong</string>
+    <string name="signal_medium">medium</string>
+    <string name="signal_weak">weak</string>
     <string name="settings">Wi-Fi settings</string>
     <string name="reload">Reload</string>
     <string name="network_name">Network name</string>

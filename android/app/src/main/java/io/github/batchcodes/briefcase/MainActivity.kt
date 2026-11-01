@@ -3,17 +3,23 @@ package io.github.batchcodes.briefcase
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.location.LocationManager
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.Uri
+import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSpecifier
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.text.InputType
 import android.view.Gravity
@@ -49,12 +55,31 @@ class MainActivity : Activity() {
     private lateinit var message: TextView
     private lateinit var connectButton: Button
     private lateinit var retryButton: Button
+    private lateinit var rangeText: TextView
 
     private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
     private val preferences by lazy { getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE) }
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private val updater by lazy { AppUpdater(this) }
+    private val wifi by lazy { getSystemService(WifiManager::class.java) }
+    private val handler = Handler(Looper.getMainLooper())
+    private var askedForScanPermission = false
+    private val rangeRefresh = object : Runnable {
+        override fun run() {
+            if (isPanelOffering()) {
+                @Suppress("DEPRECATION")
+                wifi.startScan()
+                showRange()
+                handler.postDelayed(this, RANGE_REFRESH_MS)
+            }
+        }
+    }
+    private val scanReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            showRange()
+        }
+    }
 
     private val networkName: String
         get() = preferences.getString(KEY_NETWORK_NAME, null) ?: Briefcase.DEFAULT_NETWORK_NAME
@@ -135,6 +160,18 @@ class MainActivity : Activity() {
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()
     }
 
+    override fun onResume() {
+        super.onResume()
+        registerReceiver(scanReceiver, IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION))
+        if (isPanelOffering()) startRangeRefresh()
+    }
+
+    override fun onPause() {
+        handler.removeCallbacks(rangeRefresh)
+        unregisterReceiver(scanReceiver)
+        super.onPause()
+    }
+
     override fun onDestroy() {
         releaseNetwork()
         webView.destroy()
@@ -183,6 +220,12 @@ class MainActivity : Activity() {
             textSize = 18f
             gravity = Gravity.CENTER
         }
+        rangeText = TextView(this).apply {
+            textSize = 15f
+            gravity = Gravity.CENTER
+            val padding = (12 * resources.displayMetrics.density).toInt()
+            setPadding(0, padding, 0, padding)
+        }
         connectButton = Button(this).apply { setOnClickListener { connect() } }
         retryButton = Button(this).apply {
             text = getString(R.string.try_again)
@@ -194,6 +237,7 @@ class MainActivity : Activity() {
             val padding = (24 * resources.displayMetrics.density).toInt()
             setPadding(padding, padding, padding, padding)
             addView(message)
+            addView(rangeText)
             addView(connectButton)
             addView(retryButton)
         }
@@ -215,7 +259,88 @@ class MainActivity : Activity() {
         connectButton.text = getString(R.string.connect, networkName)
         connectButton.visibility = if (showConnect) View.VISIBLE else View.GONE
         retryButton.visibility = if (showConnect) View.VISIBLE else View.GONE
+        rangeText.visibility = if (showConnect) View.VISIBLE else View.GONE
+        if (showConnect) {
+            askForScanPermissionOnce()
+            startRangeRefresh()
+        } else {
+            handler.removeCallbacks(rangeRefresh)
+        }
     }
+
+    private fun isPanelOffering(): Boolean =
+        panel.visibility == View.VISIBLE && connectButton.visibility == View.VISIBLE
+
+    private fun startRangeRefresh() {
+        handler.removeCallbacks(rangeRefresh)
+        handler.post(rangeRefresh)
+    }
+
+    private fun scanPermission(): String =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.NEARBY_WIFI_DEVICES
+        } else {
+            Manifest.permission.ACCESS_FINE_LOCATION
+        }
+
+    private fun askForScanPermissionOnce() {
+        if (askedForScanPermission) return
+        askedForScanPermission = true
+        if (checkSelfPermission(scanPermission()) != PackageManager.PERMISSION_GRANTED) {
+            val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                arrayOf(Manifest.permission.NEARBY_WIFI_DEVICES)
+            } else {
+                // Android 12 asks for coarse and fine location together.
+                arrayOf(
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                )
+            }
+            requestPermissions(permissions, REQUEST_SCAN_PERMISSION)
+        }
+    }
+
+    /** Show whether the briefcase Wi-Fi is in range, from the newest scan results. */
+    private fun showRange() {
+        if (!isPanelOffering()) return
+        rangeText.text = when {
+            !wifi.isWifiEnabled -> getString(R.string.network_wifi_off, networkName)
+            checkSelfPermission(scanPermission()) != PackageManager.PERMISSION_GRANTED ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    getString(R.string.network_scan_permission, networkName)
+                } else {
+                    getString(R.string.network_scan_location, networkName)
+                }
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU &&
+                !getSystemService(LocationManager::class.java).isLocationEnabled ->
+                getString(R.string.network_scan_location, networkName)
+            else -> rangeMessage()
+        }
+    }
+
+    private fun rangeMessage(): String {
+        val results = try {
+            wifi.scanResults.map { result -> scanResultName(result) to result.level }
+        } catch (error: SecurityException) {
+            emptyList()
+        }
+        val rssi = Briefcase.strongestRssi(results, networkName)
+            ?: return getString(R.string.network_not_in_range, networkName)
+        val signal = when (Briefcase.signalFor(rssi)) {
+            Briefcase.Signal.STRONG -> getString(R.string.signal_strong)
+            Briefcase.Signal.MEDIUM -> getString(R.string.signal_medium)
+            Briefcase.Signal.WEAK -> getString(R.string.signal_weak)
+        }
+        return getString(R.string.network_in_range, networkName, signal)
+    }
+
+    private fun scanResultName(result: android.net.wifi.ScanResult): String =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            result.wifiSsid?.toString()?.removeSurrounding("\"") ?: ""
+        } else {
+            @Suppress("DEPRECATION")
+            result.SSID ?: ""
+        }
 
     private fun showWebApp(address: String) {
         panel.visibility = View.GONE
@@ -262,6 +387,10 @@ class MainActivity : Activity() {
         grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_SCAN_PERMISSION) {
+            startRangeRefresh()
+            return
+        }
         if (requestCode == REQUEST_PERMISSION) {
             // Android 13 and later can ask for this permission. Try the
             // connection in any case: the network request also works without it
@@ -473,6 +602,8 @@ class MainActivity : Activity() {
         const val KEY_PASSWORD = "password"
         const val REQUEST_FILES = 1
         const val REQUEST_PERMISSION = 2
+        const val REQUEST_SCAN_PERMISSION = 3
+        const val RANGE_REFRESH_MS = 10_000L
         const val MENU_RELOAD = 1
         const val MENU_SETTINGS = 2
         const val MENU_CHECK_UPDATES = 3

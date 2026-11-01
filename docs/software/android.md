@@ -25,7 +25,7 @@ An update installs only over an app with the same signing key. So updates work b
 ## Use the App
 
 1. Open the app. If the phone can reach the briefcase, the app shows the web app.
-2. If not, tap "Connect to BRIEFCASE". The first time, the app asks for the Wi-Fi password of the briefcase.
+2. If not, the app shows whether the `BRIEFCASE` network is in range, and its signal strength. It updates this every 10 s. The first time, Android asks for the "Nearby devices" permission (location on Android 10 to 12). Tap "Connect to BRIEFCASE". The first time, the app asks for the Wi-Fi password of the briefcase.
 3. Android shows a dialog for the connection. Confirm it.
 
 To change the network name or the password, open the menu and select "Wi-Fi settings".

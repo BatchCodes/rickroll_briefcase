@@ -19,6 +19,22 @@ object Briefcase {
     fun firstReachable(isHealthy: (String) -> Boolean): String? =
         ADDRESSES.firstOrNull { address -> isHealthy(address + HEALTH_PATH) }
 
+    enum class Signal { STRONG, MEDIUM, WEAK }
+
+    /** Group a Wi-Fi signal level (RSSI in dBm) for the user. */
+    fun signalFor(rssi: Int): Signal = when {
+        rssi >= -60 -> Signal.STRONG
+        rssi >= -75 -> Signal.MEDIUM
+        else -> Signal.WEAK
+    }
+
+    /**
+     * Return the strongest RSSI of the network [name] in the scan [results]
+     * (pairs of network name and RSSI), or null if the network is not there.
+     */
+    fun strongestRssi(results: List<Pair<String, Int>>, name: String): Int? =
+        results.filter { (ssid, _) -> ssid == name }.maxOfOrNull { (_, rssi) -> rssi }
+
     /** WPA2 needs 8 to 63 characters. An empty password means an open network. */
     fun isValidPassword(password: String): Boolean =
         password.isEmpty() || password.length in 8..63

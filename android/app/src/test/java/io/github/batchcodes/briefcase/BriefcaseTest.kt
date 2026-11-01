@@ -30,6 +30,20 @@ class BriefcaseTest {
     }
 
     @Test
+    fun findsTheStrongestSignalOfTheNetwork() {
+        val results = listOf("Home" to -40, "BRIEFCASE" to -80, "BRIEFCASE" to -55)
+        assertEquals(-55, Briefcase.strongestRssi(results, "BRIEFCASE"))
+        assertNull(Briefcase.strongestRssi(results, "Other"))
+    }
+
+    @Test
+    fun groupsSignalLevels() {
+        assertEquals(Briefcase.Signal.STRONG, Briefcase.signalFor(-50))
+        assertEquals(Briefcase.Signal.MEDIUM, Briefcase.signalFor(-70))
+        assertEquals(Briefcase.Signal.WEAK, Briefcase.signalFor(-85))
+    }
+
+    @Test
     fun checksPasswords() {
         assertTrue(Briefcase.isValidPassword(""))
         assertTrue(Briefcase.isValidPassword("never-gonna-9"))
