@@ -7,6 +7,7 @@ from fakes import FakeDisplay, FakePlayer
 from briefcase.controller import BriefcaseController, State
 from briefcase.inputs import SimulatedInputs
 from briefcase.library import Library
+from briefcase.mpv import AudioStatus
 from briefcase.settings import (
     EndAction,
     SelectionMode,
@@ -355,6 +356,53 @@ async def test_pause_needs_a_playing_video(parts):
         await controller.set_paused(True)
     with pytest.raises(ControllerError):
         await controller.use_position(as_cue_point=False)
+
+
+async def test_status_reports_the_sound(parts):
+    _, player, _, _, controller = parts
+    await controller.start()
+    status = await controller.status_with_position()
+    assert status.audio is AudioStatus.OK
+    assert status.audio_device == "alsa/fake"
+    player.audio = AudioStatus.FAILED
+    assert (await controller.status_with_position()).audio is AudioStatus.FAILED
+
+
+async def test_open_lid_retries_a_failed_sound(parts):
+    inputs, player, _, _, controller = parts
+    await controller.start()
+    player.audio = AudioStatus.FAILED
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    assert controller.state is State.PLAYING
+    assert ("retry_audio",) in player.calls
+    assert player.audio is AudioStatus.OK
+
+
+async def test_open_lid_does_not_retry_working_sound(parts):
+    inputs, player, _, _, controller = parts
+    await controller.start()
+    inputs.set(lid_open=True)
+    await controller.inputs_changed()
+    assert ("retry_audio",) not in player.calls
+
+
+async def test_audio_watch_retries_until_the_sound_works(parts):
+    _, player, _, _, controller = parts
+    await controller.start()
+    player.audio = AudioStatus.FAILED
+    player.audio_after_retry = AudioStatus.FAILED
+    controller.start_audio_watch(interval_sec=0.01)
+    await asyncio.sleep(0.05)
+    retries = player.calls.count(("retry_audio",))
+    assert retries >= 2
+    player.audio_after_retry = AudioStatus.OK
+    await asyncio.sleep(0.05)
+    assert player.audio is AudioStatus.OK
+    settled = player.calls.count(("retry_audio",))
+    await asyncio.sleep(0.05)
+    assert player.calls.count(("retry_audio",)) == settled
+    await controller.close()
 
 
 async def test_status_with_position(parts):

@@ -48,6 +48,7 @@ def build_app(config: AppConfig) -> FastAPI:
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         config.videos_dir.mkdir(parents=True, exist_ok=True)
         await controller.start()
+        controller.start_audio_watch()
         client.start()
         network.start()
         await power.start()
@@ -55,6 +56,7 @@ def build_app(config: AppConfig) -> FastAPI:
         try:
             yield
         finally:
+            await controller.close()
             await power.close()
             await network.close()
             await client.close()

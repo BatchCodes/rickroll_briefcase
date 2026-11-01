@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from briefcase.mpv import AudioStatus
+
 
 class FakePlayer:
     def __init__(self, connected: bool = True) -> None:
@@ -13,6 +15,9 @@ class FakePlayer:
         self.muted = True
         self.volume: int | None = None
         self.current_position = 0.0
+        self.audio = AudioStatus.OK
+        # The sound status after retry_audio, for example OK after a late monitor.
+        self.audio_after_retry = AudioStatus.OK
         self._connection_handlers = []
         self._eof_handlers = []
 
@@ -68,6 +73,13 @@ class FakePlayer:
 
     async def show_text(self, text: str, duration_ms: int) -> None:
         self.calls.append(("text", text))
+
+    async def audio_status(self) -> tuple[AudioStatus, str | None]:
+        return self.audio, "alsa/fake"
+
+    async def retry_audio(self) -> None:
+        self.calls.append(("retry_audio",))
+        self.audio = self.audio_after_retry
 
     async def stop(self) -> None:
         self.calls.append(("stop",))

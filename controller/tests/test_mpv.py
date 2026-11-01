@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from briefcase.mpv import MpvClient, MpvError, MpvPlayer
+from briefcase.mpv import AudioStatus, MpvClient, MpvError, MpvPlayer
 
 
 class FakeMpvServer:
@@ -99,6 +99,29 @@ async def test_preload_loads_paused_at_start_then_seeks_for_same_file(client, se
     assert ["seek", 10.0, "absolute+exact"] in server.commands
     assert not any(command[0] == "loadfile" for command in server.commands)
     assert server.properties["loop-file"] == "no"
+
+
+async def test_audio_status_and_retry(client, server):
+    player = MpvPlayer(client)
+    assert await player.audio_status() == (AudioStatus.UNKNOWN, None)
+
+    server.properties["audio-device"] = "alsa/sysdefault:CARD=vc4hdmi0"
+    server.properties["track-list"] = [{"type": "video"}, {"type": "audio"}]
+    await player.preload(Path("/data/videos/a.mp4"), 0.0, loop=True)
+    # mpv has no current-ao after a failed audio open.
+    assert await player.audio_status() == (
+        AudioStatus.FAILED,
+        "alsa/sysdefault:CARD=vc4hdmi0",
+    )
+
+    await player.retry_audio()
+    assert server.properties["aid"] == "auto"
+    server.properties["current-ao"] = "alsa"
+    assert (await player.audio_status())[0] is AudioStatus.OK
+
+    del server.properties["current-ao"]
+    server.properties["track-list"] = [{"type": "video"}]
+    assert (await player.audio_status())[0] is AudioStatus.NO_TRACK
 
 
 async def test_end_of_file_event_calls_handler(client, server):

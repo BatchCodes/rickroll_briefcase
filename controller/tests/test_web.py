@@ -47,6 +47,8 @@ def test_healthz_and_status(setup):
     assert status["state"] == "ready"
     assert status["current_video"] == "other.mp4"
     assert status["simulated_inputs"] is True
+    assert status["audio"] == "ok"
+    assert status["audio_device"] == "alsa/fake"
 
 
 def test_list_videos(setup):

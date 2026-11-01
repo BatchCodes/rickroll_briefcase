@@ -13,6 +13,7 @@ Rules:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import random
 from dataclasses import asdict, dataclass, replace
@@ -21,7 +22,7 @@ from enum import StrEnum
 from briefcase.display import Display
 from briefcase.inputs import Inputs, InputState
 from briefcase.library import Library
-from briefcase.mpv import MpvError, Player
+from briefcase.mpv import AudioStatus, MpvError, Player
 from briefcase.settings import (
     EndAction,
     SelectionMode,
@@ -33,6 +34,7 @@ from briefcase.settings import (
 LOGGER = logging.getLogger(__name__)
 
 RETRY_DELAY_SEC = 5.0
+AUDIO_CHECK_SEC = 5.0
 KNOB_TEXT_MS = 3000
 
 
@@ -68,6 +70,8 @@ class Status:
     position_sec: float | None = None
     duration_sec: float | None = None
     resume_remaining_sec: float | None = None
+    audio: AudioStatus = AudioStatus.UNKNOWN
+    audio_device: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -103,6 +107,8 @@ class BriefcaseController:
         self._retry: asyncio.TimerHandle | None = None
         self._resume_timer: asyncio.TimerHandle | None = None
         self._resume_deadline: float | None = None
+        self._audio_watch: asyncio.Task[None] | None = None
+        self._audio_failing = False
 
     @property
     def state(self) -> State:
@@ -140,11 +146,18 @@ class BriefcaseController:
             position = await self._player.position()
         except MpvError:
             LOGGER.debug("Cannot read the playback position")
+        audio, audio_device = AudioStatus.UNKNOWN, None
+        try:
+            audio, audio_device = await self._player.audio_status()
+        except MpvError:
+            LOGGER.debug("Cannot read the sound status")
         info = self._library.probe(self._current) if self._current else None
         return replace(
             status,
             position_sec=position,
             duration_sec=info.duration_sec if info else None,
+            audio=audio,
+            audio_device=audio_device,
         )
 
     async def start(self) -> None:
@@ -153,6 +166,43 @@ class BriefcaseController:
         self._player.on_connection(self._on_player_connection)
         self._player.on_end_of_file(self._on_end_of_file)
         await self._run(self._refresh)
+
+    def start_audio_watch(self, interval_sec: float = AUDIO_CHECK_SEC) -> None:
+        """Check the sound regularly, and open the audio device again if it failed."""
+        if self._audio_watch is None:
+            self._audio_watch = asyncio.create_task(
+                self._watch_audio(interval_sec), name="audio-watch"
+            )
+
+    async def close(self) -> None:
+        if self._audio_watch is not None:
+            self._audio_watch.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._audio_watch
+            self._audio_watch = None
+
+    async def _watch_audio(self, interval_sec: float) -> None:
+        while True:
+            await asyncio.sleep(interval_sec)
+            if self._player.connected:
+                await self._retry_audio_if_failed()
+
+    async def _retry_audio_if_failed(self) -> None:
+        # The HDMI audio open fails (error 524 on a Pi) while the HDMI output is
+        # not active yet, for example just after boot. A later try works.
+        try:
+            audio, device = await self._player.audio_status()
+            if audio is not AudioStatus.FAILED:
+                if audio is AudioStatus.OK and self._audio_failing:
+                    LOGGER.info("The sound works again on %s", device)
+                self._audio_failing = False
+                return
+            if not self._audio_failing:
+                LOGGER.warning("The player has no sound on %s. Trying again", device)
+            self._audio_failing = True
+            await self._player.retry_audio()
+        except MpvError as error:
+            LOGGER.warning("Cannot check the sound: %s", error)
 
     def _on_inputs_threadsafe(self, _state: InputState) -> None:
         if self._loop is None:
@@ -456,6 +506,7 @@ class BriefcaseController:
             LOGGER.info("Reopened within the resume window. Continuing")
         self._cancel_resume_window()
         self._paused = False
+        await self._retry_audio_if_failed()
         await self._player.set_mute(False)
         await asyncio.gather(self._player.play(), self._display.on())
         self._state = State.PLAYING

@@ -12,6 +12,7 @@ import itertools
 import json
 import logging
 from collections.abc import Awaitable, Callable
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -23,6 +24,15 @@ LOAD_TIMEOUT_SEC = 15.0
 
 EventHandler = Callable[[dict[str, Any]], Awaitable[None] | None]
 ConnectionHandler = Callable[[bool], Awaitable[None] | None]
+
+
+class AudioStatus(StrEnum):
+    """Whether the player can play the sound of the loaded video."""
+
+    OK = "ok"
+    FAILED = "failed"
+    NO_TRACK = "no_track"
+    UNKNOWN = "unknown"
 
 
 class MpvError(RuntimeError):
@@ -54,6 +64,10 @@ class Player(Protocol):
     async def seek_absolute(self, position_sec: float) -> None: ...
 
     async def show_text(self, text: str, duration_ms: int) -> None: ...
+
+    async def audio_status(self) -> tuple[AudioStatus, str | None]: ...
+
+    async def retry_audio(self) -> None: ...
 
     async def stop(self) -> None: ...
 
@@ -244,9 +258,32 @@ class MpvPlayer:
         # Level 0 shows the text although mpv.conf sets osd-level=0.
         await self._client.command("show-text", text, duration_ms, 0)
 
+    async def audio_status(self) -> tuple[AudioStatus, str | None]:
+        """The sound status of the loaded video, and the audio device."""
+        if self._loaded_path is None or not self._restart.is_set():
+            return AudioStatus.UNKNOWN, None
+        device = await self._optional_property("audio-device")
+        if await self._optional_property("current-ao"):
+            return AudioStatus.OK, device
+        tracks = await self._optional_property("track-list") or []
+        if any(track.get("type") == "audio" for track in tracks):
+            return AudioStatus.FAILED, device
+        return AudioStatus.NO_TRACK, device
+
+    async def retry_audio(self) -> None:
+        # After a failed audio open, mpv deselects the audio track and does not
+        # try again until the next file. Selecting the track opens the device.
+        await self._client.set_property("aid", "auto")
+
     async def stop(self) -> None:
         await self._client.command("stop")
         self._loaded_path = None
+
+    async def _optional_property(self, name: str) -> Any:
+        try:
+            return await self._client.get_property(name)
+        except MpvError:
+            return None
 
     async def _on_connection(self, connected: bool) -> None:
         self._loaded_path = None
