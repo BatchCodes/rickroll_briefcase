@@ -292,7 +292,27 @@ The user wants an Android app. The app checks that the phone can reach the brief
 8.4. [x] (bd: rickroll_briefcase-679.31) In-app updater: at start (at most once a day) and from the menu, the app asks the GitHub API for the newest release, and includes pre-releases only when the setting "Include pre-releases" is on. If the release is newer, the app offers the update, downloads `briefcase-vX.Y.Z.apk` over the network that has internet (not the briefcase Wi-Fi), checks it against `SHA256SUMS`, and installs it with the Android package installer. The first time, Android asks to allow "Install unknown apps" for the app. Debug builds do not offer updates, because their signing key differs. Add unit tests for the version comparison, the release selection and the checksum file.
 8.5. [ ] (bd: none) Test on the user's Android 15 phone: install the APK, an update from one release to the next, the connect flow from mobile data, the web view on the briefcase Wi-Fi, a video upload in the app, and the behaviour when the briefcase is off. Record the results.
 
-## Phase 9: Future Work
+## Phase 9: Updates From the Phone
+
+The user wants an Updates page in the web app and the Android app, with "Update app" and "Update briefcase" (the Pi).
+
+### Decisions
+
+- Updates tab -> the web app gets an Updates tab with the installed versions, "Update briefcase", its status and its last result. Inside the Android app, the tab also shows "Update app", through a small JavaScript bridge to the app updater. In a normal browser, the tab links to the APK on GitHub instead.
+- Version (user decision) -> "Update briefcase" installs the newest release. An option includes pre-releases. For tests, a second option installs the newest commit on `main` ("latest").
+- Internet (user decision) -> the update switches the Pi to a known Wi-Fi network, updates, then goes back to the hotspot. The phone loses the briefcase Wi-Fi during the update. With an Ethernet connection, the update uses Ethernet and does not switch.
+- Privilege -> the controller container does not run host commands. It writes an update request file to `data/`. A systemd path unit on the Pi starts an update script as root. The script writes its progress and result to a status file that the controller reads.
+- Prerequisite -> `setup.sh` must run unattended: it keeps an existing hotspot (no password prompt) and keeps its stored options (bd issue `rickroll_briefcase-86b`).
+
+### Implementation Steps
+
+9.1. [ ] (bd: none) Unattended `setup.sh`: store all options in `.env` and use them on a later run (fix `rickroll_briefcase-86b`), keep an existing hotspot connection without a password prompt, and add a `--non-interactive` flag that fails instead of prompting.
+9.2. [ ] (bd: none) Host update script and systemd units: `scripts/update.sh` (switch to a known network if there is no internet, find the target release or `main`, run the installer for it, go back to the hotspot, write the status file), plus a systemd path unit and service that `setup.sh` installs. Add tests for the target selection.
+9.3. [ ] (bd: none) Controller and web app: an Updates tab with the installed versions, the update options, the "Update briefcase" button, and the status and last result from the status file.
+9.4. [ ] (bd: none) Android app: a JavaScript bridge, so that the Updates tab shows "Update app" and the app version inside the app.
+9.5. [ ] (bd: none) Test on the Pi and the phone: an update from one release to the next, an update to `main`, an update without a known network in range, and the reconnection of the phone afterwards.
+
+## Phase 10: Future Work
 
 Not started. Candidate items: an ESP32 power controller for a long standby time, a function for the knob button, a separate amplifier, a web app PIN or login, a shutdown button, video thumbnails, a read-only root file system (overlay) for safer power loss, and a pre-built SD card image with `pi-gen`.
 
