@@ -100,18 +100,18 @@ The code is in the container images, so this is the complete update. If you used
 
 ## Documentation
 
-| Document                                        | Content                                              |
-| ----------------------------------------------- | ---------------------------------------------------- |
-| [Parts list](docs/hardware/parts.md)            | the parts to buy, with prices                        |
-| [Wiring](docs/hardware/wiring.md)               | how to connect the reed switch, arm switch and power |
-| [Assembly](docs/hardware/assembly.md)           | how to put the parts in the briefcase                |
-| [Power](docs/hardware/power.md)                 | battery life and power measurements                  |
-| [Architecture](docs/software/architecture.md)   | how the software parts work together                 |
-| [Configuration](docs/software/configuration.md) | all settings and their defaults                      |
-| [Development](docs/software/development.md)     | how to run and test the software on a laptop         |
-| [Player notes](docs/software/player.md)         | player and hardware test results                     |
-| [Android app](docs/software/android.md)         | the phone app: install, use and build                |
-| [Video tools](tools/README.md)                  | how to make test videos and convert your own videos  |
+| Document                                        | Content                                                                               |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [Parts list](docs/hardware/parts.md)            | the parts to buy, with prices                                                         |
+| [Wiring](docs/hardware/wiring.md)               | how to connect the switches, the knob, the power and the monitor to each supported Pi |
+| [Assembly](docs/hardware/assembly.md)           | how to put the parts in the briefcase                                                 |
+| [Power](docs/hardware/power.md)                 | battery life and power measurements                                                   |
+| [Architecture](docs/software/architecture.md)   | how the software parts work together                                                  |
+| [Configuration](docs/software/configuration.md) | all settings and their defaults                                                       |
+| [Development](docs/software/development.md)     | how to run and test the software on a laptop                                          |
+| [Player notes](docs/software/player.md)         | player and hardware test results                                                      |
+| [Android app](docs/software/android.md)         | the phone app: install, use and build                                                 |
+| [Video and diagram tools](tools/README.md)      | how to make test videos, convert your own videos and make the wiring diagram          |
 
 ## Contributing
 
