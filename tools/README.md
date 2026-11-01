@@ -1,6 +1,6 @@
-# Video Tools
+# Video and Diagram Tools
 
-These scripts make test videos and convert your own videos for the briefcase. They run `ffmpeg` in a Docker container, so you need only Docker. The scripts build the small `rickroll_briefcase-tools` image the first time that you run them.
+These scripts make test videos, convert your own videos for the briefcase and draw the wiring diagram. The video scripts run `ffmpeg` in a Docker container, so you need only Docker. They build the small `rickroll_briefcase-tools` image the first time that you run them.
 
 ## Make a Test Video
 
@@ -38,7 +38,16 @@ The Pi 4 and the Pi Zero 2 W both decode this format in hardware. The Pi Zero 2 
 
 The input file and the output file must be below the current directory, because the script mounts only the current directory in the container.
 
+## Make the Wiring Diagrams
+
+[wiring_diagrams.py](wiring_diagrams.py) writes the wiring diagram for the supported Raspberry Pis to `docs/images/wiring.svg`. It needs only Python 3, not Docker. Run it from the repository root after you change it:
+
+```bash
+python3 tools/wiring_diagrams.py
+```
+
 ## See also
 
 - [README](../README.md)
 - [Player notes](../docs/software/player.md)
+- [Wiring](../docs/hardware/wiring.md)
