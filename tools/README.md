@@ -46,6 +46,12 @@ The input file and the output file must be below the current directory, because 
 python3 tools/wiring_diagrams.py
 ```
 
+[latch_diagram.py](latch_diagram.py) writes the power latch diagram to `docs/images/power_latch.svg`:
+
+```bash
+python3 tools/latch_diagram.py
+```
+
 ## See also
 
 - [README](../README.md)

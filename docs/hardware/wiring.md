@@ -65,7 +65,76 @@ The power switch is optional. It connects GPIO 3 to ground when it is on. When a
 - Without the power latch (`--power-switch`), the switch halts the Pi, and the switch wakes the halted Pi again. The halted Pi still draws some power. A Pi 5 does not wake from halt on GPIO 3, so this mode is not available on a Pi 5.
 - With the power latch (`--power-latch`), GPIO 26 also signals the latch at the end of the shutdown, and the latch disconnects the power. This mode operates on all supported boards.
 
-**The power latch circuit is not final.** The diagram shows only the connections between the Pi and the latch `OFF` inputs.
+The [power latch](#power-latch) section below shows the full latch circuit.
+
+## Power Latch
+
+The power latch disconnects the Pi and the monitor from the power bank when the power switch is off. The off-state draw is then less than 0.01 µA for each latch. Without the latch, a halted Pi and the monitor still draw power.
+
+![Power latch wiring](../images/power_latch.svg)
+
+Fig 2. Two latches cut only the VBUS wire of the Pi cable and of the monitor cable. Pole 1 of the power switch tells the Pi the switch position. Pole 2 makes a short pulse that turns both latches on. GPIO 26 turns both latches off at the end of the shutdown.
+
+### Latch parts
+
+| Part                                                | Quantity | Notes                                                                                                                               |
+| --------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Pololu Big Pushbutton Power Switch MP (Pololu 2812) | 2        | one latch for the Pi line and one for the monitor line. 4.5 V to 40 V, approximately 8 A, less than 0.01 µA when off.               |
+| USB-C to USB-C cable, 5 A                           | 2        | you cut each cable in two and connect the latch to the VBUS wire. Use a cable with a USB 2.0 data line, because it has fewer wires. |
+| 2-pole toggle switch, on-on (DPDT)                  | 1        | the power switch. It replaces the 1-pole power switch. Pole 2 uses only one of its two contacts.                                    |
+| C1, ceramic or film capacitor, 1 µF, 16 V or more   | 1        | the `ON` pulse.                                                                                                                     |
+| R1 and R4, resistor 100 kΩ                          | 2        | R1 discharges the `ON` line. R4 holds the `OFF` line low while the Pi has no power.                                                 |
+| R2, resistor 1 MΩ                                   | 1        | discharges C1 when the switch is off, so that the next "on" makes a new pulse.                                                      |
+| R3, resistor 10 kΩ                                  | 1        | limits the current between GPIO 26 and the `OFF` inputs.                                                                            |
+| D1, Schottky diode BAT85 (or 1N5819)                | 1        | stops a negative voltage on the `ON` inputs when C1 discharges.                                                                     |
+| heat-shrink tube, stranded wire 0.5 mm² for VBUS    | some     | the VBUS wires carry up to 3 A.                                                                                                     |
+
+Do not use two USB-C receptacle breakout boards for each line. A USB-C cable has one CC wire, and that wire connects to `CC1` or `CC2` at the receptacle, as the plug is turned. With two receptacles, the CC connection breaks for half of the plug positions. A cut cable does not have this problem.
+
+### How the latch operates
+
+1. The power switch goes on. Pole 2 connects 5 V from the Pi line to C1. C1 sends a pulse of approximately 0.15 s to both `ON` inputs, and both latches turn on.
+2. The Pi starts, and the monitor gets its power. Pole 1 holds GPIO 3 low, so the controller knows that the switch is on.
+3. The power switch goes off. Pole 1 releases GPIO 3. After 2 s, the controller starts a clean shutdown.
+4. At the end of the shutdown, the `gpio-poweroff` overlay sets GPIO 26 high. Both latches see a high level on `OFF` and turn off. The Pi loses its power, so GPIO 26 goes low again.
+5. R2 discharges C1, so the next "on" makes a new pulse.
+
+The power bank keeps its two outputs on, because the CC wires stay connected. The Pi and the monitor stay "connected" for the power bank. Pole 2 takes its 5 V from the Pi line before the latch. Do not take it from the monitor line, because the monitor can ask the power bank for 9 V or more.
+
+If you turn the switch on again during the shutdown, the Pi still turns off at the end of the shutdown. Then turn the switch off and on again.
+
+### Cable preparation
+
+Do these steps for each of the two cables:
+
+1. Cut the cable in the middle. Remove 5 cm of the outer insulation on each side.
+2. Find the VBUS wire. It is usually red. Measure it with a multimeter from the plug to make sure.
+3. Solder all other wires again, colour to colour: GND, CC, D+, D− and the shield. Insulate each joint with heat-shrink tube.
+4. Solder the VBUS wire from the power bank side to `VIN` of the latch. Solder the VBUS wire from the device side to `VOUT`.
+5. Connect `GND` of the latch to the GND wire of the cable.
+
+### The control wires
+
+| From                  | Through                       | To                             |
+| --------------------- | ----------------------------- | ------------------------------ |
+| GPIO 3 (pin 5)        | pole 1, "on" contact          | GND (pin 6)                    |
+| `VIN` of latch 1      | pole 2, "on" contact, then C1 | `ON` of latch 1 and latch 2    |
+| `ON` of both latches  | R1                            | GND                            |
+| pole 2, C1 side       | R2                            | GND                            |
+| GND                   | D1, anode to GND              | `ON` of both latches (cathode) |
+| GPIO 26 (pin 37)      | R3                            | `OFF` of latch 1 and latch 2   |
+| `OFF` of both latches | R4                            | GND                            |
+
+Do not connect `CTRL`. Pololu recommends pulses on `ON` and `OFF`, and a high level on `CTRL` at the same time as on `OFF` is not allowed.
+
+### Checks before the first use
+
+Do these checks before you close the briefcase. Record the results in the [player notes](../software/player.md).
+
+1. **GPIO 26 at the shutdown.** Do this check before you connect the latch. Run `setup.sh --power-latch`, then run `sudo poweroff`. Measure GPIO 26 (pin 37) to GND. It must go to 3.3 V after the shutdown. On a Raspberry Pi 5 this check is important, because the Pi 5 turns off through its own power chip.
+2. **The power bank output.** Turn the switch off, and wait 10 minutes. Measure `VIN` of latch 1. If it is 0 V, the power bank has turned its output off. Then the "on" pulse has no power, and you must press the power bank button before you turn the switch on.
+3. **The monitor voltage.** Measure `VIN` of latch 2 while the switch is off. If it is more than 5 V, the monitor gets this voltage directly at the next "on". Make sure that the monitor accepts it.
+4. **The power cycles.** Turn the switch off and on 20 times. Each time, the Pi must shut down cleanly before the latches turn off, and the briefcase must become ready again.
 
 ## Video Knob
 
@@ -143,10 +212,11 @@ On a Pi 5, use `--power-latch` instead of `--power-switch`, and only when the la
 
 ## Diagram Source
 
-[wiring_diagrams.py](../../tools/wiring_diagrams.py) makes the wiring diagram. After you change it, run this command from the repository root:
+[wiring_diagrams.py](../../tools/wiring_diagrams.py) makes the wiring diagram, and [latch_diagram.py](../../tools/latch_diagram.py) makes the power latch diagram. After you change one of them, run it from the repository root:
 
 ```bash
 python3 tools/wiring_diagrams.py
+python3 tools/latch_diagram.py
 ```
 
 ## See also

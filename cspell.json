@@ -22,6 +22,7 @@
     "debounce",
     "detent",
     "dialog",
+    "DPDT",
     "dupont",
     "edid",
     "fastapi",
@@ -56,8 +57,10 @@
     "nvim",
     "pipefail",
     "polkit",
+    "Pololu",
     "powercore",
     "poweroff",
+    "Pushbutton",
     "pydantic",
     "pyproject",
     "pytest",
@@ -72,6 +75,8 @@
     "unpause",
     "unpauses",
     "uvicorn",
-    "vcgencmd"
+    "VBUS",
+    "vcgencmd",
+    "VOUT"
   ]
 }
