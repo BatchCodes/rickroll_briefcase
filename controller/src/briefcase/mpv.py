@@ -51,6 +51,8 @@ class Player(Protocol):
 
     async def seek_relative(self, offset_sec: float) -> None: ...
 
+    async def seek_absolute(self, position_sec: float) -> None: ...
+
     async def show_text(self, text: str, duration_ms: int) -> None: ...
 
     async def stop(self) -> None: ...
@@ -234,6 +236,9 @@ class MpvPlayer:
 
     async def seek_relative(self, offset_sec: float) -> None:
         await self._client.command("seek", offset_sec, "relative+exact")
+
+    async def seek_absolute(self, position_sec: float) -> None:
+        await self._client.command("seek", position_sec, "absolute+exact")
 
     async def show_text(self, text: str, duration_ms: int) -> None:
         # Level 0 shows the text although mpv.conf sets osd-level=0.

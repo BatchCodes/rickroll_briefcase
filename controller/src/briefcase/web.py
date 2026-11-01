@@ -55,7 +55,8 @@ class PauseRequest(BaseModel):
 
 
 class SeekRequest(BaseModel):
-    offset_sec: float
+    offset_sec: float | None = None
+    position_sec: float | None = None
 
 
 class UsePositionRequest(BaseModel):
@@ -280,7 +281,7 @@ def create_app(
     @app.post("/api/play")
     async def play(body: PlayRequest) -> dict[str, Any]:
         await controller.set_test_play(body.active)
-        return controller.status().to_dict()
+        return (await controller.status_with_position()).to_dict()
 
     @app.post("/api/pause")
     async def pause(body: PauseRequest) -> dict[str, Any]:
@@ -292,8 +293,15 @@ def create_app(
 
     @app.post("/api/seek")
     async def seek(body: SeekRequest) -> dict[str, Any]:
+        if (body.offset_sec is None) == (body.position_sec is None):
+            raise HTTPException(
+                status_code=400, detail="Give offset_sec or position_sec."
+            )
         try:
-            await controller.seek(body.offset_sec)
+            if body.position_sec is not None:
+                await controller.seek_to(body.position_sec)
+            else:
+                await controller.seek(body.offset_sec)
         except ControllerError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
         return (await controller.status_with_position()).to_dict()

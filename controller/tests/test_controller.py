@@ -329,6 +329,9 @@ async def test_pause_seek_and_use_position_as_start(parts):
     assert controller.status().paused
     await controller.seek(5)
     assert player.current_position == 35.0
+    await controller.seek_to(70)
+    assert player.current_position == 70.0
+    await controller.seek_to(35)
 
     assert await controller.use_position(as_cue_point=False) == 35.0
     video = store.get().video("a.mp4")

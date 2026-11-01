@@ -272,6 +272,14 @@ class BriefcaseController:
 
         await self._run_strict(handler)
 
+    async def seek_to(self, position_sec: float) -> None:
+        async def handler() -> None:
+            if self._state is not State.PLAYING:
+                raise ControllerError("No video plays now.")
+            await self._player.seek_absolute(max(0.0, position_sec))
+
+        await self._run_strict(handler)
+
     async def use_position(self, as_cue_point: bool) -> float:
         """Store the current position as the start position or as a cue point."""
         result: dict[str, float] = {}

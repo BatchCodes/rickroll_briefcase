@@ -148,6 +148,13 @@ def test_pause_seek_use_position_api(setup):
     assert status["paused"] is True
     status = client.post("/api/seek", json={"offset_sec": -10}).json()
     assert status["position_sec"] == 20.0
+    status = client.post("/api/seek", json={"position_sec": 42}).json()
+    assert status["position_sec"] == 42.0
+    status = client.post("/api/seek", json={"position_sec": 20}).json()
+    assert status["position_sec"] == 20.0
+    assert client.post("/api/seek", json={}).status_code == 400
+    response = client.post("/api/seek", json={"offset_sec": 1, "position_sec": 1})
+    assert response.status_code == 400
     body = client.post("/api/use-position", json={"target": "start"}).json()
     assert body == {"position_sec": 20.0, "position": "00:20"}
     videos = {video["name"]: video for video in client.get("/api/videos").json()}
